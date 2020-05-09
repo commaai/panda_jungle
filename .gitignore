@@ -1,0 +1,14 @@
+*.pyc
+.*.swp
+.*.swo
+*.o
+*.so
+*.d
+*.dump
+a.out
+*~
+.#*
+dist/
+board/obj/
+.DS_Store
+.vscode
