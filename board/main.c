@@ -256,7 +256,7 @@ void TIM3_IRQHandler(void) {
 
     // Blink and OBD CAN
     #ifdef TESTING_CLOSET
-      board_set_can_mode(can_mode == CAN_MODE_NORMAL ? CAN_MODE_OBD_CAN2 : CAN_MODE_NORMAL);
+      //board_set_can_mode(can_mode == CAN_MODE_NORMAL ? CAN_MODE_OBD_CAN2 : CAN_MODE_NORMAL);
     #endif
 
     // on to the next one
@@ -311,8 +311,8 @@ int main(void) {
   #ifdef TESTING_CLOSET
     puts("---- TESTING CLOSET BUILD ---- \nSTARTING WITH ORIENTATION 1\nFORWARDING CAN MESSAGES FROM [0, 2] TO 1\nBLINKING OBD_CAN\n");
     board_set_harness_orientation(HARNESS_ORIENTATION_1);
-    can_set_forwarding(0, 2);
-    can_set_forwarding(1, 2);
+    //can_set_forwarding(0, 2);
+    //can_set_forwarding(1, 2);
   #endif
 
 
