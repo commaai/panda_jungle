@@ -306,11 +306,12 @@ int main(void) {
   puts("**** INTERRUPTS ON ****\n");
   enable_interrupts();
 
+  // set a default orientation
+  board_set_harness_orientation(HARNESS_ORIENTATION_1);
 
   // If built with TESTING_CLOSET flag, forward all messages on bus 0 and 1 to bus 2
   #ifdef TESTING_CLOSET
-    puts("---- TESTING CLOSET BUILD ---- \nSTARTING WITH ORIENTATION 1\nFORWARDING CAN MESSAGES FROM [0, 2] TO 1\nBLINKING OBD_CAN\n");
-    board_set_harness_orientation(HARNESS_ORIENTATION_1);
+    puts("---- TESTING CLOSET BUILD ---- \n");
     //can_set_forwarding(0, 2);
     //can_set_forwarding(1, 2);
   #endif
