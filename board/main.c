@@ -223,41 +223,52 @@ void __attribute__ ((noinline)) enable_fpu(void) {
   SCB->CPACR |= ((3UL << (10U * 2U)) | (3UL << (11U * 2U)));
 }
 
-uint64_t tcnt = 0;
-bool last_button_status = false;
 
-// called once per second
+// called at 10 Hz
 // cppcheck-suppress unusedFunction ; used in headers not included in cppcheck
 void TIM3_IRQHandler(void) {
+  static uint32_t tcnt = 0;
+  static uint32_t button_press_cnt = 0;
+  static bool prev_button_status = false;
+
   if (TIM3->SR != 0) {
     can_live = pending_can_live;
 
-    // reset this every 16th pass
-    if ((tcnt & 0xFU) == 0U) {
+    // reset this every 10 seconds
+    if (tcnt % 100 == 0) {
       pending_can_live = 0;
     }
-    #ifdef DEBUG
+
+    if (tcnt % 10 == 0) {
+#ifdef DEBUG
       puts("** blink ");
       puth(can_rx_q.r_ptr); puts(" "); puth(can_rx_q.w_ptr); puts("  ");
       puth(can_tx1_q.r_ptr); puts(" "); puth(can_tx1_q.w_ptr); puts("  ");
       puth(can_tx2_q.r_ptr); puts(" "); puth(can_tx2_q.w_ptr); puts("\n");
-    #endif
+#endif
 
-    // turn off the blue LED, turned on by CAN
-    board_set_led(LED_BLUE, false);
+      // turn off the blue LED, turned on by CAN
+      board_set_led(LED_BLUE, false);
+
+      // Blink and OBD CAN
+#ifdef TESTING_CLOSET
+        //board_set_can_mode(can_mode == CAN_MODE_NORMAL ? CAN_MODE_OBD_CAN2 : CAN_MODE_NORMAL);
+#endif
+    }
 
     // Check on button
     bool current_button_status = board_get_button();
-    if(current_button_status && last_button_status){
+
+    if (current_button_status && button_press_cnt == 10) {
       board_set_panda_power(!panda_power);
-    } else {
-      last_button_status = current_button_status;
     }
 
-    // Blink and OBD CAN
-    #ifdef TESTING_CLOSET
-      //board_set_can_mode(can_mode == CAN_MODE_NORMAL ? CAN_MODE_OBD_CAN2 : CAN_MODE_NORMAL);
-    #endif
+    if (!current_button_status && prev_button_status && button_press_cnt < 10){
+      board_set_ignition(!ignition);
+    }
+
+    button_press_cnt = current_button_status ? button_press_cnt + 1 : 0;
+    prev_button_status = current_button_status;
 
     // on to the next one
     tcnt += 1U;
@@ -293,8 +304,8 @@ int main(void) {
   // Init CAN
   can_init_all();
 
-  // 48mhz / 65536 ~= 732 / 732 = 1
-  timer_init(TIM3, 732);
+  // 48mhz / 65536 ~= 732 / 73 = 10
+  timer_init(TIM3, 73);
   NVIC_EnableIRQ(TIM3_IRQn);
 
 #ifdef DEBUG
