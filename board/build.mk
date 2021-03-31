@@ -23,6 +23,10 @@ ifeq ($(TESTING_CLOSET),1)
 	CFLAGS += "-DTESTING_CLOSET"
 endif
 
+ifeq ($(FINAL_PROVISIONING),1)
+	CFLAGS += "-DFINAL_PROVISIONING"
+endif
+
 DEPDIR = generated_dependencies
 $(shell mkdir -p -m 777 $(DEPDIR) >/dev/null)
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
