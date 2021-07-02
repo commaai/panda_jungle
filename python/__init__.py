@@ -11,6 +11,7 @@ import traceback
 import subprocess
 from .dfu import PandaJungleDFU
 from .serial import PandaJungleSerial
+from .isotp import isotp_send, isotp_recv  # pylint: disable=import-error
 
 __version__ = '0.0.1'
 
@@ -333,6 +334,14 @@ class PandaJungle(object):
 
     """
     self._handle.controlWrite(PandaJungle.REQUEST_OUT, 0xf1, bus, 0, b'')
+
+  # ******************* isotp *******************
+
+  def isotp_send(self, addr, dat, bus, recvaddr=None, subaddr=None):
+    return isotp_send(self, dat, addr, bus, recvaddr, subaddr)
+
+  def isotp_recv(self, addr, bus=0, sendaddr=None, subaddr=None):
+    return isotp_recv(self, addr, bus, sendaddr, subaddr)
 
   # ******************* serial *******************
 
