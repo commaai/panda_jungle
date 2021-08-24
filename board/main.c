@@ -263,8 +263,8 @@ void TIM3_IRQHandler(void) {
     }
 
 #ifdef FINAL_PROVISIONING
-    // ign on for 3s, off for 2s
-    const bool ign = ((tcnt/10) % (3+2)) < 3;
+    // ign on for 0.3s, off for 0.2s
+    const bool ign = (tcnt % (3+2)) < 3;
     if (ign != ignition) {
       board_set_ignition(ign);
     }
