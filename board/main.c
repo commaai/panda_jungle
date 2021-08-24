@@ -229,7 +229,6 @@ void __attribute__ ((noinline)) enable_fpu(void) {
 void TIM3_IRQHandler(void) {
   static uint32_t tcnt = 0;
   static uint32_t button_press_cnt = 0;
-  static bool prev_button_status = false;
 
   if (TIM3->SR != 0) {
     can_live = pending_can_live;
@@ -263,12 +262,21 @@ void TIM3_IRQHandler(void) {
       board_set_panda_power(!panda_power);
     }
 
+#ifdef FINAL_PROVISIONING
+    // ign on for 3s, off for 2s
+    const bool ign = ((tcnt/10) % (3+2)) < 3;
+    if (ign != ignition) {
+      board_set_ignition(ign);
+    }
+#else
+    static bool prev_button_status = false;
     if (!current_button_status && prev_button_status && button_press_cnt < 10){
       board_set_ignition(!ignition);
     }
+    prev_button_status = current_button_status;
+#endif
 
     button_press_cnt = current_button_status ? button_press_cnt + 1 : 0;
-    prev_button_status = current_button_status;
 
     // on to the next one
     tcnt += 1U;
