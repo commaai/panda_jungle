@@ -16,6 +16,7 @@ DFU_ABORT = 6
 class PandaJungleDFU(object):
   def __init__(self, dfu_serial):
     context = usb1.USBContext()
+    context.open()
     for device in context.getDeviceList(skip_on_error=True):
       if device.getVendorID() == 0x0483 and device.getProductID() == 0xdf11:
         try:
@@ -30,17 +31,17 @@ class PandaJungleDFU(object):
 
   @staticmethod
   def list():
-    context = usb1.USBContext()
     dfu_serials = []
-    try:
-      for device in context.getDeviceList(skip_on_error=True):
-        if device.getVendorID() == 0x0483 and device.getProductID() == 0xdf11:
-          try:
-            dfu_serials.append(device.open().getASCIIStringDescriptor(3))
-          except Exception:
-            pass
-    except Exception:
-      pass
+    with usb1.USBContext() as context:
+      try:
+        for device in context.getDeviceList(skip_on_error=True):
+          if device.getVendorID() == 0x0483 and device.getProductID() == 0xdf11:
+            try:
+              dfu_serials.append(device.open().getASCIIStringDescriptor(3))
+            except Exception:
+              pass
+      except Exception:
+        pass
     return dfu_serials
 
   @staticmethod

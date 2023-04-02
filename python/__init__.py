@@ -61,20 +61,21 @@ class PandaJungle(object):
 
   def close(self):
     self._handle.close()
+    self._context.close()
     self._handle = None
 
   def connect(self, claim=True, wait=False):
     if self._handle != None:
       self.close()
 
-    context = usb1.USBContext()
     self._handle = None
     self.wifi = False
 
     while 1:
       try:
-        for device in context.getDeviceList(skip_on_error=True):
-          #print(device)
+        self._context = usb1.USBContext()
+        self._context.open()
+        for device in self._context.getDeviceList(skip_on_error=True):
           if device.getVendorID() == 0xbbaa and device.getProductID() in [0xddcf, 0xddef]:
             try:
               this_serial = device.getSerialNumber()
@@ -97,7 +98,7 @@ class PandaJungle(object):
         traceback.print_exc()
       if wait == False or self._handle != None:
         break
-      context = usb1.USBContext() #New context needed so new devices show up
+      self._context.close()
     assert(self._handle != None)
     print("connected")
 
@@ -215,17 +216,17 @@ class PandaJungle(object):
 
   @staticmethod
   def list():
-    context = usb1.USBContext()
     ret = []
-    try:
-      for device in context.getDeviceList(skip_on_error=True):
-        if device.getVendorID() == 0xbbaa and device.getProductID() in [0xddcf, 0xddef]:
-          try:
-            ret.append(device.getSerialNumber())
-          except Exception:
-            continue
-    except Exception:
-      pass
+    with usb1.USBContext() as context:
+      try:
+        for device in context.getDeviceList(skip_on_error=True):
+          if device.getVendorID() == 0xbbaa and device.getProductID() in [0xddcf, 0xddef]:
+            try:
+              ret.append(device.getSerialNumber())
+            except Exception:
+              continue
+      except Exception:
+        pass
     # TODO: detect if this is real
     #ret += ["WIFI"]
     return ret
