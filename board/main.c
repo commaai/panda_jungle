@@ -208,6 +208,7 @@ int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, bool hardwired) 
     // **** 0xf5: Set CAN silent mode
     case 0xf5:
       can_silent = (setup->b.wValue.w > 0U) ? ALL_CAN_SILENT : ALL_CAN_LIVE;
+      can_init_all();
       break;
     default:
       puts("NO HANDLER ");
