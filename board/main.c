@@ -205,6 +205,10 @@ int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, bool hardwired) 
     case 0xf4:
       board_enable_can_transciever(setup->b.wValue.w, setup->b.wIndex.w > 0U);
       break;
+    // **** 0xf5: Set CAN silent mode
+    case 0xf5:
+      can_silent = (setup->b.wValue.w > 0U) ? ALL_CAN_SILENT : ALL_CAN_LIVE;
+      break;
     default:
       puts("NO HANDLER ");
       puth(setup->b.bRequest);
