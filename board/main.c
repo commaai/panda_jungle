@@ -201,6 +201,10 @@ int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, bool hardwired) 
         clear_debug_buff();
         break;
       }
+    // **** 0xf4: Set CAN transceiver enable pin
+    case 0xf4:
+      board_enable_can_transciever(setup->b.wValue.w, setup->b.wIndex.w > 0U);
+      break;
     default:
       puts("NO HANDLER ");
       puth(setup->b.bRequest);
