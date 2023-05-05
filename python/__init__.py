@@ -272,6 +272,9 @@ class PandaJungle(object):
   def set_can_speed_kbps(self, bus, speed):
     self._handle.controlWrite(PandaJungle.REQUEST_OUT, 0xde, bus, int(speed*10), b'')
 
+  def set_can_silent(self, silent):
+    self._handle.controlWrite(PandaJungle.REQUEST_OUT, 0xf5, int(silent), 0, b'')
+
   def set_panda_power(self, enabled):
     self._handle.controlWrite(PandaJungle.REQUEST_OUT, 0xa0, int(enabled), 0, b'')
 
