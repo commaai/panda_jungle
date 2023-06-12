@@ -1,37 +1,55 @@
 // ********************* Includes *********************
 #include "config.h"
+
+#include "drivers/pwm.h"
+#include "drivers/usb.h"
+#include "drivers/gmlan_alt.h"
+#include "drivers/kline_init.h"
+#include "drivers/simple_watchdog.h"
+
+#include "early_init.h"
+#include "provision.h"
+
+#include "power_saving.h"
+#include "safety.h"
+
+#include "health.h"
+
+#include "drivers/can_common.h"
+
+#ifdef STM32H7
+  #include "drivers/fdcan.h"
+#else
+  #include "drivers/bxcan.h"
+#endif
+
 #include "obj/gitversion.h"
 
-#include "libc.h"
+#include "can_comms.h"
+#include "main_comms.h"
 
-#include "main_declarations.h"
-
-#include "drivers/llcan.h"
-#include "drivers/llgpio.h"
-
-#include "board.h"
-
-#include "drivers/debug.h"
-#include "drivers/usb.h"
-#include "drivers/timer.h"
-#include "drivers/clock.h"
-
-#include "gpio.h"
-
-#include "drivers/can.h"
 
 // ********************* Serial debugging *********************
 
-void debug_ring_callback() {
-  char rcv;
-  while (getc(&rcv)) {
-    (void)injectc(rcv);  // misra-c2012-17.7: cast to void is ok: debug function
+bool check_started(void) {
+  bool started = current_board->check_ignition() || ignition_can;
+  ignition_seen |= started;
+  return started;
+}
 
-    // jump to DFU flash
-    if (rcv == 'z') {
-      enter_bootloader_mode = ENTER_BOOTLOADER_MAGIC;
-      NVIC_SystemReset();
-    }
+void debug_ring_callback(uart_ring *ring) {
+  char rcv;
+  while (getc(ring, &rcv)) {
+    (void)putc(ring, rcv);  // misra-c2012-17.7: cast to void is ok: debug function
+
+    // only allow bootloader entry on debug builds
+    #ifdef ALLOW_DEBUG
+      // jump to DFU flash
+      if (rcv == 'z') {
+        enter_bootloader_mode = ENTER_BOOTLOADER_MAGIC;
+        NVIC_SystemReset();
+      }
+    #endif
 
     // normal reset
     if (rcv == 'x') {
@@ -40,128 +58,55 @@ void debug_ring_callback() {
   }
 }
 
-// ***************************** USB port *****************************
-int usb_cb_ep1_in(void *usbdata, int len, bool hardwired) {
-  UNUSED(hardwired);
-  CAN_FIFOMailBox_TypeDef *reply = (CAN_FIFOMailBox_TypeDef *)usbdata;
-  int ilen = 0;
-  while (ilen < MIN(len/0x10, 4) && can_pop(&can_rx_q, &reply[ilen])) {
-    ilen++;
+// ****************************** safety mode ******************************
+
+// this is the only way to leave silent mode
+void set_safety_mode(uint16_t mode, uint16_t param) {
+  uint16_t mode_copy = mode;
+  int err = set_safety_hooks(mode_copy, param);
+  if (err == -1) {
+    print("Error: safety set mode failed. Falling back to SILENT\n");
+    mode_copy = SAFETY_SILENT;
+    err = set_safety_hooks(mode_copy, 0U);
+    if (err == -1) {
+      print("Error: Failed setting SILENT mode. Hanging\n");
+      while (true) {
+        // TERMINAL ERROR: we can't continue if SILENT safety mode isn't succesfully set
+      }
+    }
   }
-  return ilen*0x10;
-}
+  safety_tx_blocked = 0;
+  safety_rx_invalid = 0;
 
-void usb_cb_ep2_out(void *usbdata, int len, bool hardwired) {
-  UNUSED(usbdata);
-  UNUSED(len);
-  UNUSED(hardwired);
-}
-
-// send on CAN
-void usb_cb_ep3_out(void *usbdata, int len, bool hardwired) {
-  UNUSED(hardwired);
-  int dpkt = 0;
-  uint32_t *d32 = (uint32_t *)usbdata;
-  for (dpkt = 0; dpkt < (len / 4); dpkt += 4) {
-    CAN_FIFOMailBox_TypeDef to_push;
-    to_push.RDHR = d32[dpkt + 3];
-    to_push.RDLR = d32[dpkt + 2];
-    to_push.RDTR = d32[dpkt + 1];
-    to_push.RIR = d32[dpkt];
-
-    uint8_t bus_number = (to_push.RDTR >> 4) & CAN_BUS_NUM_MASK;
-    can_send(&to_push, bus_number);
-  }
-}
-
-void usb_cb_enumeration_complete() {
-  puts("USB enumeration complete\n");
-  is_enumerated = 1;
-}
-
-int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, bool hardwired) {
-  unsigned int resp_len = 0;
-  switch (setup->b.bRequest) {
-    // **** 0xa0: Set panda power.
-    case 0xa0:
-      board_set_panda_power((setup->b.wValue.w == 1U));
-      break;
-    // **** 0xa1: Set harness orientation.
-    case 0xa1:
-      board_set_harness_orientation(setup->b.wValue.w);
-      break;
-    // **** 0xa2: Set ignition.
-    case 0xa2:
-      board_set_ignition((setup->b.wValue.w == 1U));
-      break;
-    // **** 0xc0: get CAN debug info
-    case 0xc0:
-      puts("can tx: "); puth(can_tx_cnt);
-      puts(" txd: "); puth(can_txd_cnt);
-      puts(" rx: "); puth(can_rx_cnt);
-      puts(" err: "); puth(can_err_cnt);
-      puts("\n");
-      break;
-    // **** 0xd0: fetch serial number
-    case 0xd0:
-      (void)memcpy(resp, (uint8_t *)0x1fff79c0, 0x10);
-      resp_len = 0x10;
-      break;
-    // **** 0xd1: enter bootloader mode
-    case 0xd1:
-      // this allows reflashing of the bootstub
-      // so it's blocked over wifi
-      switch (setup->b.wValue.w) {
-        case 0:
-          if (hardwired) {
-            puts("-> entering bootloader\n");
-            enter_bootloader_mode = ENTER_BOOTLOADER_MAGIC;
-            NVIC_SystemReset();
-          }
-          break;
-        case 1:
-          puts("-> entering softloader\n");
-          enter_bootloader_mode = ENTER_SOFTLOADER_MAGIC;
-          NVIC_SystemReset();
-          break;
-        default:
-          puts("Bootloader mode invalid\n");
-          break;
+  switch (mode_copy) {
+    case SAFETY_SILENT:
+      set_intercept_relay(false);
+      if (current_board->has_obd) {
+        current_board->set_can_mode(CAN_MODE_NORMAL);
       }
+      can_silent = ALL_CAN_SILENT;
       break;
-    // **** 0xd6: get version
-    case 0xd6:
-      COMPILE_TIME_ASSERT(sizeof(gitversion) <= MAX_RESP_LEN);
-      (void)memcpy(resp, gitversion, sizeof(gitversion));
-      resp_len = sizeof(gitversion) - 1U;
-      break;
-    // **** 0xd8: reset ST
-    case 0xd8:
-      NVIC_SystemReset();
-      break;
-    // **** 0xdb: set OBD CAN multiplexing mode
-    case 0xdb:
-      if (setup->b.wValue.w == 1U) {
-        // Enable OBD CAN
-        board_set_can_mode(CAN_MODE_OBD_CAN2);
-      } else {
-        // Disable OBD CAN
-        board_set_can_mode(CAN_MODE_NORMAL);
+    case SAFETY_NOOUTPUT:
+      set_intercept_relay(false);
+      if (current_board->has_obd) {
+        current_board->set_can_mode(CAN_MODE_NORMAL);
       }
+      can_silent = ALL_CAN_LIVE;
       break;
-    // **** 0xdd: enable can forwarding
-    case 0xdd:
-      // wValue = Can Bus Num to forward from
-      // wIndex = Can Bus Num to forward to
-      if ((setup->b.wValue.w < BUS_MAX) && (setup->b.wIndex.w < BUS_MAX) &&
-          (setup->b.wValue.w != setup->b.wIndex.w)) { // set forwarding
-        can_set_forwarding(setup->b.wValue.w, setup->b.wIndex.w & CAN_BUS_NUM_MASK);
-      } else if((setup->b.wValue.w < BUS_MAX) && (setup->b.wIndex.w == 0xFFU)){ //Clear Forwarding
-        can_set_forwarding(setup->b.wValue.w, -1);
-      } else {
-        puts("Invalid CAN bus forwarding\n");
+    case SAFETY_ELM327:
+      set_intercept_relay(false);
+      heartbeat_counter = 0U;
+      heartbeat_lost = false;
+      if (current_board->has_obd) {
+        if (param == 0U) {
+          current_board->set_can_mode(CAN_MODE_OBD_CAN2);
+        } else {
+          current_board->set_can_mode(CAN_MODE_NORMAL);
+        }
       }
+      can_silent = ALL_CAN_LIVE;
       break;
+<<<<<<< HEAD
     // **** 0xde: set can bitrate
     case 0xde:
       if (setup->b.wValue.w < BUS_MAX) {
@@ -210,21 +155,33 @@ int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, bool hardwired) 
       can_silent = (setup->b.wValue.w > 0U) ? ALL_CAN_SILENT : ALL_CAN_LIVE;
       can_init_all();
       break;
+=======
+>>>>>>> e7c4b5d (copy latest panda fw (adc0c12))
     default:
-      puts("NO HANDLER ");
-      puth(setup->b.bRequest);
-      puts("\n");
+      set_intercept_relay(true);
+      heartbeat_counter = 0U;
+      heartbeat_lost = false;
+      if (current_board->has_obd) {
+        current_board->set_can_mode(CAN_MODE_NORMAL);
+      }
+      can_silent = ALL_CAN_LIVE;
       break;
   }
-  return resp_len;
+  can_init_all();
 }
 
+bool is_car_safety_mode(uint16_t mode) {
+  return (mode != SAFETY_SILENT) &&
+         (mode != SAFETY_NOOUTPUT) &&
+         (mode != SAFETY_ALLOUTPUT) &&
+         (mode != SAFETY_ELM327);
+}
 
 // ***************************** main code *****************************
 
 // cppcheck-suppress unusedFunction ; used in headers not included in cppcheck
 void __initialize_hardware_early(void) {
-  early();
+  early_initialization();
 }
 
 void __attribute__ ((noinline)) enable_fpu(void) {
@@ -232,38 +189,155 @@ void __attribute__ ((noinline)) enable_fpu(void) {
   SCB->CPACR |= ((3UL << (10U * 2U)) | (3UL << (11U * 2U)));
 }
 
+// go into SILENT when heartbeat isn't received for this amount of seconds.
+#define HEARTBEAT_IGNITION_CNT_ON 5U
+#define HEARTBEAT_IGNITION_CNT_OFF 2U
 
+<<<<<<< HEAD
 // called at 10 Hz
 // cppcheck-suppress unusedFunction ; used in headers not included in cppcheck
 void TIM3_IRQHandler(void) {
   static uint32_t tcnt = 0;
   static uint32_t button_press_cnt = 0;
+=======
+// called at 8Hz
+uint8_t loop_counter = 0U;
+uint8_t previous_harness_status = HARNESS_STATUS_NC;
+void tick_handler(void) {
+  if (TICK_TIMER->SR != 0) {
+    // siren
+    current_board->set_siren((loop_counter & 1U) && (siren_enabled || (siren_countdown > 0U)));
+>>>>>>> e7c4b5d (copy latest panda fw (adc0c12))
 
-  if (TIM3->SR != 0) {
-    can_live = pending_can_live;
+    // tick drivers at 8Hz
+    fan_tick();
+    usb_tick();
+    simple_watchdog_kick();
 
-    // reset this every 10 seconds
-    if (tcnt % 100 == 0) {
-      pending_can_live = 0;
-    }
+    // decimated to 1Hz
+    if (loop_counter == 0U) {
+      can_live = pending_can_live;
 
-    if (tcnt % 10 == 0) {
-#ifdef DEBUG
-      puts("** blink ");
-      puth(can_rx_q.r_ptr); puts(" "); puth(can_rx_q.w_ptr); puts("  ");
-      puth(can_tx1_q.r_ptr); puts(" "); puth(can_tx1_q.w_ptr); puts("  ");
-      puth(can_tx2_q.r_ptr); puts(" "); puth(can_tx2_q.w_ptr); puts("\n");
-#endif
+      //puth(usart1_dma); print(" "); puth(DMA2_Stream5->M0AR); print(" "); puth(DMA2_Stream5->NDTR); print("\n");
+
+      // reset this every 16th pass
+      if ((uptime_cnt & 0xFU) == 0U) {
+        pending_can_live = 0;
+      }
+      #ifdef DEBUG
+        print("** blink ");
+        print("rx:"); puth4(can_rx_q.r_ptr); print("-"); puth4(can_rx_q.w_ptr); print("  ");
+        print("tx1:"); puth4(can_tx1_q.r_ptr); print("-"); puth4(can_tx1_q.w_ptr); print("  ");
+        print("tx2:"); puth4(can_tx2_q.r_ptr); print("-"); puth4(can_tx2_q.w_ptr); print("  ");
+        print("tx3:"); puth4(can_tx3_q.r_ptr); print("-"); puth4(can_tx3_q.w_ptr); print("\n");
+      #endif
+
+      // set green LED to be controls allowed
+      current_board->set_led(LED_GREEN, controls_allowed | green_led_enabled);
 
       // turn off the blue LED, turned on by CAN
-      board_set_led(LED_BLUE, false);
+      // unless we are in power saving mode
+      current_board->set_led(LED_BLUE, (uptime_cnt & 1U) && (power_save_status == POWER_SAVE_STATUS_ENABLED));
 
-      // Blink and OBD CAN
-#ifdef FINAL_PROVISIONING
-        board_set_can_mode(can_mode == CAN_MODE_NORMAL ? CAN_MODE_OBD_CAN2 : CAN_MODE_NORMAL);
-#endif
+      // tick drivers at 1Hz
+      harness_tick();
+
+      const bool recent_heartbeat = heartbeat_counter == 0U;
+      current_board->board_tick(check_started(), usb_enumerated, recent_heartbeat, ((harness.status != previous_harness_status) && (harness.status != HARNESS_STATUS_NC)));
+      previous_harness_status = harness.status;
+
+      // increase heartbeat counter and cap it at the uint32 limit
+      if (heartbeat_counter < __UINT32_MAX__) {
+        heartbeat_counter += 1U;
+      }
+
+      // disabling heartbeat not allowed while in safety mode
+      if (is_car_safety_mode(current_safety_mode)) {
+        heartbeat_disabled = false;
+      }
+
+      if (siren_countdown > 0U) {
+        siren_countdown -= 1U;
+      }
+
+      if (controls_allowed || heartbeat_engaged) {
+        controls_allowed_countdown = 30U;
+      } else if (controls_allowed_countdown > 0U) {
+        controls_allowed_countdown -= 1U;
+      } else {
+
+      }
+
+      // exit controls allowed if unused by openpilot for a few seconds
+      if (controls_allowed && !heartbeat_engaged) {
+        heartbeat_engaged_mismatches += 1U;
+        if (heartbeat_engaged_mismatches >= 3U) {
+          controls_allowed = 0U;
+        }
+      } else {
+        heartbeat_engaged_mismatches = 0U;
+      }
+
+      if (!heartbeat_disabled) {
+        // if the heartbeat has been gone for a while, go to SILENT safety mode and enter power save
+        if (heartbeat_counter >= (check_started() ? HEARTBEAT_IGNITION_CNT_ON : HEARTBEAT_IGNITION_CNT_OFF)) {
+          print("device hasn't sent a heartbeat for 0x");
+          puth(heartbeat_counter);
+          print(" seconds. Safety is set to SILENT mode.\n");
+
+          if (controls_allowed_countdown > 0U) {
+            siren_countdown = 5U;
+            controls_allowed_countdown = 0U;
+          }
+
+          // set flag to indicate the heartbeat was lost
+          if (is_car_safety_mode(current_safety_mode)) {
+            heartbeat_lost = true;
+          }
+
+          // clear heartbeat engaged state
+          heartbeat_engaged = false;
+
+          if (current_safety_mode != SAFETY_SILENT) {
+            set_safety_mode(SAFETY_SILENT, 0U);
+          }
+
+          if (power_save_status != POWER_SAVE_STATUS_ENABLED) {
+            set_power_save_state(POWER_SAVE_STATUS_ENABLED);
+          }
+
+          // Also disable IR when the heartbeat goes missing
+          current_board->set_ir_power(0U);
+
+          // TODO: need a SPI equivalent
+          // If enumerated but no heartbeat (phone up, boardd not running), or when the SOM GPIO is pulled high by the ABL,
+          // turn the fan on to cool the device
+          if(usb_enumerated || current_board->read_som_gpio()){
+            fan_set_power(50U);
+          } else {
+            fan_set_power(0U);
+          }
+        }
+      }
+
+      // check registers
+      check_registers();
+
+      // set ignition_can to false after 2s of no CAN seen
+      if (ignition_can_cnt > 2U) {
+        ignition_can = false;
+      }
+
+      // on to the next one
+      uptime_cnt += 1U;
+      safety_mode_cnt += 1U;
+      ignition_can_cnt += 1U;
+
+      // synchronous safety check
+      safety_tick(current_rx_checks);
     }
 
+<<<<<<< HEAD
     // Check on button
     bool current_button_status = board_get_button();
 
@@ -289,72 +363,176 @@ void TIM3_IRQHandler(void) {
 
     // on to the next one
     tcnt += 1U;
+=======
+    loop_counter++;
+    loop_counter %= 8U;
+>>>>>>> e7c4b5d (copy latest panda fw (adc0c12))
   }
-  TIM3->SR = 0;
+  TICK_TIMER->SR = 0;
 }
 
+void EXTI_IRQ_Handler(void) {
+  if (check_exti_irq()) {
+    exti_irq_clear();
+    clock_init();
+
+    set_power_save_state(POWER_SAVE_STATUS_DISABLED);
+    deepsleep_allowed = false;
+    heartbeat_counter = 0U;
+    usb_soft_disconnect(false);
+
+    NVIC_EnableIRQ(TICK_TIMER_IRQ);
+  }
+}
+
+uint8_t rtc_counter = 0;
+void RTC_WKUP_IRQ_Handler(void) {
+  exti_irq_clear();
+  clock_init();
+
+  rtc_counter++;
+  if ((rtc_counter % 2U) == 0U) {
+    current_board->set_led(LED_BLUE, false);
+  } else {
+    current_board->set_led(LED_BLUE, true);
+  }
+
+  if (rtc_counter == __UINT8_MAX__) {
+    rtc_counter = 1U;
+  }
+}
+
+
 int main(void) {
+  // Init interrupt table
+  init_interrupts(true);
+
   // shouldn't have interrupts here, but just in case
   disable_interrupts();
 
   // init early devices
   clock_init();
   peripherals_init();
+  detect_board_type();
+  adc_init();
 
   // print hello
-  puts("\n\n\n************************ JUNGLE MAIN START ************************\n");
+  print("\n\n\n************************ MAIN START ************************\n");
+
+  // check for non-supported board types
+  if(hw_type == HW_TYPE_UNKNOWN){
+    print("Unsupported board type\n");
+    while (1) { /* hang */ }
+  }
+
+  print("Config:\n");
+  print("  Board type: "); print(current_board->board_type); print("\n");
 
   // init board
-  board_init();
+  current_board->init();
 
-  // panda jungle has an FPU, let's use it!
+  // panda has an FPU, let's use it!
   enable_fpu();
 
-  // init microsecond system timer
-  // increments 1000000 times per second
-  // generate an update to set the prescaler
-  TIM2->PSC = 48-1;
-  TIM2->CR1 = TIM_CR1_CEN;
-  TIM2->EGR = TIM_EGR_UG;
-  // use TIM2->CNT to read
+  if (current_board->has_gps) {
+    uart_init(&uart_ring_gps, 9600);
+  } else {
+    // enable ESP uart
+    uart_init(&uart_ring_gps, 115200);
+  }
 
-  // Init CAN
-  can_init_all();
+  if (current_board->has_lin) {
+    // enable LIN
+    uart_init(&uart_ring_lin1, 10400);
+    UART5->CR2 |= USART_CR2_LINEN;
+    uart_init(&uart_ring_lin2, 10400);
+    USART3->CR2 |= USART_CR2_LINEN;
+  }
 
-  // 48mhz / 65536 ~= 732 / 73 = 10
-  timer_init(TIM3, 73);
-  NVIC_EnableIRQ(TIM3_IRQn);
+  if (current_board->fan_max_rpm > 0U) {
+    fan_init();
+  }
+
+  microsecond_timer_init();
+
+  // init to SILENT and can silent
+  set_safety_mode(SAFETY_SILENT, 0U);
+
+  // enable CAN TXs
+  current_board->enable_can_transceivers(true);
+
+  // init watchdog for heartbeat loop, fed at 8Hz
+  simple_watchdog_init(FAULT_HEARTBEAT_LOOP_WATCHDOG, (3U * 1000000U / 8U));
+
+  // 8Hz timer
+  REGISTER_INTERRUPT(TICK_TIMER_IRQ, tick_handler, 10U, FAULT_INTERRUPT_RATE_TICK)
+  tick_timer_init();
 
 #ifdef DEBUG
-  puts("DEBUG ENABLED\n");
+  print("DEBUG ENABLED\n");
 #endif
   // enable USB (right before interrupts or enum can fail!)
   usb_init();
 
-  puts("**** INTERRUPTS ON ****\n");
+#ifdef ENABLE_SPI
+  if (current_board->has_spi) {
+    spi_init();
+  }
+#endif
+
+  print("**** INTERRUPTS ON ****\n");
   enable_interrupts();
 
-  // set a default orientation
-  board_set_harness_orientation(HARNESS_ORIENTATION_1);
-
-  // If built with FINAL_PROVISIONING flag, forward all messages on bus 0 and 1 to bus 2
-  #ifdef FINAL_PROVISIONING
-    puts("---- FINAL PROVISIONING BUILD ---- \n");
-    can_set_forwarding(0, 2);
-    can_set_forwarding(1, 2);
-  #endif
-
-
   // LED should keep on blinking all the time
-  // useful for debugging, fade breaks = panda jungle is overloaded
-  while(true){
-    for (int fade = 0; fade < 1024; fade += 8) {
-      for (int i = 0; i < 128; i++) {
-        board_set_led(LED_RED, 1);
-        if (fade < 512) { delay(fade); } else { delay(1024-fade); }
-        board_set_led(LED_RED, 0);
-        if (fade < 512) { delay(512-fade); } else { delay(fade-512); }
+  uint64_t cnt = 0;
+
+  for (cnt=0;;cnt++) {
+    if (power_save_status == POWER_SAVE_STATUS_DISABLED) {
+      #ifdef DEBUG_FAULTS
+      if (fault_status == FAULT_STATUS_NONE) {
+      #endif
+        // useful for debugging, fade breaks = panda is overloaded
+        for (uint32_t fade = 0U; fade < MAX_LED_FADE; fade += 1U) {
+          current_board->set_led(LED_RED, true);
+          delay(fade >> 4);
+          current_board->set_led(LED_RED, false);
+          delay((MAX_LED_FADE - fade) >> 4);
+        }
+
+        for (uint32_t fade = MAX_LED_FADE; fade > 0U; fade -= 1U) {
+          current_board->set_led(LED_RED, true);
+          delay(fade >> 4);
+          current_board->set_led(LED_RED, false);
+          delay((MAX_LED_FADE - fade) >> 4);
+        }
+
+      #ifdef DEBUG_FAULTS
+      } else {
+          current_board->set_led(LED_RED, 1);
+          delay(512000U);
+          current_board->set_led(LED_RED, 0);
+          delay(512000U);
+        }
+      #endif
+    } else {
+      if (deepsleep_allowed && !usb_enumerated && !check_started() && ignition_seen && (heartbeat_counter > 20U)) {
+        usb_soft_disconnect(true);
+        fan_set_power(0U);
+        NVIC_DisableIRQ(TICK_TIMER_IRQ);
+        delay(512000U);
+
+        // Init IRQs for CAN transceiver and ignition line
+        exti_irq_init();
+
+        // Init RTC Wakeup event on EXTI22
+        REGISTER_INTERRUPT(RTC_WKUP_IRQn, RTC_WKUP_IRQ_Handler, 10U, FAULT_INTERRUPT_RATE_EXTI)
+        rtc_wakeup_init();
+
+        // STOP mode
+        SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
       }
+      __WFI();
+      SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
     }
   }
 
