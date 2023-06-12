@@ -22,9 +22,9 @@
 #define USB_VID 0xBBAAU
 
 #ifdef BOOTSTUB
-  #define USB_PID 0xDDEEU
+  #define USB_PID 0xDDEFU
 #else
-  #define USB_PID 0xDDCCU
+  #define USB_PID 0xDDCFU
 #endif
 
 // platform includes

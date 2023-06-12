@@ -12,3 +12,4 @@ dist/
 board/obj/
 .DS_Store
 .vscode
+.scons*

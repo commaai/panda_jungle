@@ -1,9 +1,5 @@
 extern int _app_start[0xc000]; // Only first 3 sectors of size 0x4000 are used
 
-// Prototypes
-void set_safety_mode(uint16_t mode, uint16_t param);
-bool is_car_safety_mode(uint16_t mode);
-
 int get_health_pkt(void *dat) {
   COMPILE_TIME_ASSERT(sizeof(struct health_t) <= USBPACKET_MAX_SIZE);
   struct health_t * health = (struct health_t*)dat;
@@ -47,12 +43,6 @@ int get_health_pkt(void *dat) {
   return sizeof(*health);
 }
 
-int get_rtc_pkt(void *dat) {
-  timestamp_t t = rtc_get_time();
-  (void)memcpy(dat, &t, sizeof(t));
-  return sizeof(t);
-}
-
 // send on serial, first byte to select the ring
 void comms_endpoint2_write(uint8_t *data, uint32_t len) {
   uart_ring *ur = get_ring_by_number(data[0]);
@@ -81,52 +71,6 @@ int comms_control_handler(ControlPacket_t *req, uint8_t *resp) {
 #endif
 
   switch (req->request) {
-    // **** 0xa0: get rtc time
-    case 0xa0:
-      resp_len = get_rtc_pkt(resp);
-      break;
-    // **** 0xa1: set rtc year
-    case 0xa1:
-      t = rtc_get_time();
-      t.year = req->param1;
-      rtc_set_time(t);
-      break;
-    // **** 0xa2: set rtc month
-    case 0xa2:
-      t = rtc_get_time();
-      t.month = req->param1;
-      rtc_set_time(t);
-      break;
-    // **** 0xa3: set rtc day
-    case 0xa3:
-      t = rtc_get_time();
-      t.day = req->param1;
-      rtc_set_time(t);
-      break;
-    // **** 0xa4: set rtc weekday
-    case 0xa4:
-      t = rtc_get_time();
-      t.weekday = req->param1;
-      rtc_set_time(t);
-      break;
-    // **** 0xa5: set rtc hour
-    case 0xa5:
-      t = rtc_get_time();
-      t.hour = req->param1;
-      rtc_set_time(t);
-      break;
-    // **** 0xa6: set rtc minute
-    case 0xa6:
-      t = rtc_get_time();
-      t.minute = req->param1;
-      rtc_set_time(t);
-      break;
-    // **** 0xa7: set rtc second
-    case 0xa7:
-      t = rtc_get_time();
-      t.second = req->param1;
-      rtc_set_time(t);
-      break;
     // **** 0xa8: get microsecond timer
     case 0xa8:
       time = microsecond_timer_get();
@@ -135,24 +79,6 @@ int comms_control_handler(ControlPacket_t *req, uint8_t *resp) {
       resp[2] = ((time & 0x00FF0000U) >> 16U);
       resp[3] = ((time & 0xFF000000U) >> 24U);
       resp_len = 4U;
-      break;
-    // **** 0xb0: set IR power
-    case 0xb0:
-      current_board->set_ir_power(req->param1);
-      break;
-    // **** 0xb1: set fan power
-    case 0xb1:
-      fan_set_power(req->param1);
-      break;
-    // **** 0xb2: get fan rpm
-    case 0xb2:
-      resp[0] = (fan_state.rpm & 0x00FFU);
-      resp[1] = ((fan_state.rpm & 0xFF00U) >> 8U);
-      resp_len = 2;
-      break;
-    // **** 0xb3: set phone power
-    case 0xb3:
-      current_board->set_phone_power(req->param1 > 0U);
       break;
     // **** 0xc0: reset communications
     case 0xc0:
@@ -246,58 +172,6 @@ int comms_control_handler(ControlPacket_t *req, uint8_t *resp) {
     case 0xd8:
       NVIC_SystemReset();
       break;
-    // **** 0xd9: set ESP power
-    case 0xd9:
-      if (req->param1 == 1U) {
-        current_board->set_gps_mode(GPS_ENABLED);
-      } else if (req->param1 == 2U) {
-        current_board->set_gps_mode(GPS_BOOTMODE);
-      } else {
-        current_board->set_gps_mode(GPS_DISABLED);
-      }
-      break;
-    // **** 0xda: reset ESP, with optional boot mode
-    case 0xda:
-      current_board->set_gps_mode(GPS_DISABLED);
-      delay(1000000);
-      if (req->param1 == 1U) {
-        current_board->set_gps_mode(GPS_BOOTMODE);
-      } else {
-        current_board->set_gps_mode(GPS_ENABLED);
-      }
-      delay(1000000);
-      current_board->set_gps_mode(GPS_ENABLED);
-      break;
-    // **** 0xdb: set GMLAN (white/grey) or OBD CAN (black) multiplexing mode
-    case 0xdb:
-      if(current_board->has_obd){
-        if (req->param1 == 1U) {
-          // Enable OBD CAN
-          current_board->set_can_mode(CAN_MODE_OBD_CAN2);
-        } else {
-          // Disable OBD CAN
-          current_board->set_can_mode(CAN_MODE_NORMAL);
-        }
-      } else {
-        if (req->param1 == 1U) {
-          // GMLAN ON
-          if (req->param2 == 1U) {
-            can_set_gmlan(1);
-          } else if (req->param2 == 2U) {
-            can_set_gmlan(2);
-          } else {
-            print("Invalid bus num for GMLAN CAN set\n");
-          }
-        } else {
-          can_set_gmlan(-1);
-        }
-      }
-      break;
-
-    // **** 0xdc: set safety mode
-    case 0xdc:
-      set_safety_mode(req->param1, (uint16_t)req->param2);
-      break;
     // **** 0xdd: get healthpacket and CANPacket versions
     case 0xdd:
       resp[0] = HEALTH_PACKET_VERSION;
@@ -313,90 +187,10 @@ int comms_control_handler(ControlPacket_t *req, uint8_t *resp) {
         UNUSED(ret);
       }
       break;
-    // **** 0xdf: set alternative experience
-    case 0xdf:
-      // you can only set this if you are in a non car safety mode
-      if (!is_car_safety_mode(current_safety_mode)) {
-        alternative_experience = req->param1;
-      }
-      break;
-    // **** 0xe0: uart read
-    case 0xe0:
-      ur = get_ring_by_number(req->param1);
-      if (!ur) {
-        break;
-      }
-
-      // TODO: Remove this again and fix boardd code to hande the message bursts instead of single chars
-      if (ur == &uart_ring_gps) {
-        dma_pointer_handler(ur, DMA2_Stream5->NDTR);
-      }
-
-      // read
-      while ((resp_len < MIN(req->length, USBPACKET_MAX_SIZE)) &&
-                         getc(ur, (char*)&resp[resp_len])) {
-        ++resp_len;
-      }
-      break;
-    // **** 0xe1: uart set baud rate
-    case 0xe1:
-      ur = get_ring_by_number(req->param1);
-      if (!ur) {
-        break;
-      }
-      uart_set_baud(ur->uart, req->param2);
-      break;
-    // **** 0xe2: uart set parity
-    case 0xe2:
-      ur = get_ring_by_number(req->param1);
-      if (!ur) {
-        break;
-      }
-      switch (req->param2) {
-        case 0:
-          // disable parity, 8-bit
-          ur->uart->CR1 &= ~(USART_CR1_PCE | USART_CR1_M);
-          break;
-        case 1:
-          // even parity, 9-bit
-          ur->uart->CR1 &= ~USART_CR1_PS;
-          ur->uart->CR1 |= USART_CR1_PCE | USART_CR1_M;
-          break;
-        case 2:
-          // odd parity, 9-bit
-          ur->uart->CR1 |= USART_CR1_PS;
-          ur->uart->CR1 |= USART_CR1_PCE | USART_CR1_M;
-          break;
-        default:
-          break;
-      }
-      break;
-    // **** 0xe4: uart set baud rate extended
-    case 0xe4:
-      ur = get_ring_by_number(req->param1);
-      if (!ur) {
-        break;
-      }
-      uart_set_baud(ur->uart, (int)req->param2*300);
-      break;
     // **** 0xe5: set CAN loopback (for testing)
     case 0xe5:
       can_loopback = (req->param1 > 0U);
       can_init_all();
-      break;
-    // **** 0xe7: set power save state
-    case 0xe7:
-      set_power_save_state(req->param1);
-      break;
-    // **** 0xf0: k-line/l-line wake-up pulse for KWP2000 fast initialization
-    case 0xf0:
-      if(current_board->has_lin) {
-        bool k = (req->param1 == 0U) || (req->param1 == 2U);
-        bool l = (req->param1 == 1U) || (req->param1 == 2U);
-        if (bitbang_wakeup(k, l)) {
-          resp_len = -1; // do not clear NAK yet (wait for bit banging to finish)
-        }
-      }
       break;
     // **** 0xf1: Clear CAN ring buffer.
     case 0xf1:
@@ -410,49 +204,9 @@ int comms_control_handler(ControlPacket_t *req, uint8_t *resp) {
         print("Clearing CAN CAN ring buffer failed: wrong bus number\n");
       }
       break;
-    // **** 0xf2: Clear UART ring buffer.
-    case 0xf2:
-      {
-        uart_ring * rb = get_ring_by_number(req->param1);
-        if (rb != NULL) {
-          print("Clearing UART queue.\n");
-          clear_uart_buff(rb);
-        }
-        break;
-      }
-    // **** 0xf3: Heartbeat. Resets heartbeat counter.
-    case 0xf3:
-      {
-        heartbeat_counter = 0U;
-        heartbeat_lost = false;
-        heartbeat_disabled = false;
-        heartbeat_engaged = (req->param1 == 1U);
-        break;
-      }
-    // **** 0xf4: k-line/l-line 5 baud initialization
-    case 0xf4:
-      if(current_board->has_lin) {
-        bool k = (req->param1 == 0U) || (req->param1 == 2U);
-        bool l = (req->param1 == 1U) || (req->param1 == 2U);
-        uint8_t five_baud_addr = (req->param2 & 0xFFU);
-        if (bitbang_five_baud_addr(k, l, five_baud_addr)) {
-          resp_len = -1; // do not clear NAK yet (wait for bit banging to finish)
-        }
-      }
-      break;
-    // **** 0xf6: set siren enabled
-    case 0xf6:
-      siren_enabled = (req->param1 != 0U);
-      break;
     // **** 0xf7: set green led enabled
     case 0xf7:
       green_led_enabled = (req->param1 != 0U);
-      break;
-    // **** 0xf8: disable heartbeat checks
-    case 0xf8:
-      if (!is_car_safety_mode(current_safety_mode)) {
-        heartbeat_disabled = true;
-      }
       break;
     // **** 0xf9: set CAN FD data bitrate
     case 0xf9:
@@ -465,10 +219,6 @@ int comms_control_handler(ControlPacket_t *req, uint8_t *resp) {
         bool ret = can_init(CAN_NUM_FROM_BUS_NUM(req->param1));
         UNUSED(ret);
       }
-      break;
-    // **** 0xfb: allow highest power saving mode (stop) to be entered
-    case 0xfb:
-      deepsleep_allowed = true;
       break;
     // **** 0xfc: set CAN FD non-ISO mode
     case 0xfc:
