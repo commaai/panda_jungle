@@ -1,7 +1,18 @@
 
 void board_v2_set_led(uint8_t color, bool enabled) {
-  UNUSED(color);
-  UNUSED(enabled);
+  switch (color) {
+    case LED_RED:
+      set_gpio_output(GPIOE, 4, !enabled);
+      break;
+     case LED_GREEN:
+      set_gpio_output(GPIOE, 3, !enabled);
+      break;
+    case LED_BLUE:
+      set_gpio_output(GPIOE, 2, !enabled);
+      break;
+    default:
+      break;
+  }
 }
 
 void board_v2_set_can_mode(uint8_t mode) {
