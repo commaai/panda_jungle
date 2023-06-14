@@ -175,27 +175,6 @@ void can_rx(uint8_t can_number) {
     }
     can_set_checksum(&to_push);
 
-    // forwarding (panda only)
-    int bus_fwd_num = safety_fwd_hook(bus_number, to_push.addr);
-    if (bus_fwd_num != -1) {
-      CANPacket_t to_send;
-
-      to_send.returned = 0U;
-      to_send.rejected = 0U;
-      to_send.extended = to_push.extended;
-      to_send.addr = to_push.addr;
-      to_send.bus = to_push.bus;
-      to_send.data_len_code = to_push.data_len_code;
-      (void)memcpy(to_send.data, to_push.data, dlc_to_len[to_push.data_len_code]);
-      can_set_checksum(&to_send);
-
-      can_send(&to_send, bus_fwd_num, true);
-      can_health[can_number].total_fwd_cnt += 1U;
-    }
-
-    safety_rx_invalid += safety_rx_hook(&to_push) ? 0U : 1U;
-    ignition_can_hook(&to_push);
-
     current_board->set_led(LED_BLUE, true);
     rx_buffer_overflow += can_push(&can_rx_q, &to_push) ? 0U : 1U;
 

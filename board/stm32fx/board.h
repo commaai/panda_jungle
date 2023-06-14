@@ -5,8 +5,7 @@
 #include "boards/unused_funcs.h"
 
 // ///// Board definition and detection ///// //
-#include "stm32fx/lladc.h"
-#include "stm32fx/llrtc.h"
+#include "boards/board_v1.h"
 
 void detect_board_type(void) {
   hw_type = HW_TYPE_V1;

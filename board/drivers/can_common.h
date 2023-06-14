@@ -190,35 +190,6 @@ void can_flip_buses(uint8_t bus1, uint8_t bus2){
   bus_config[bus2].can_num_lookup = bus1;
 }
 
-void ignition_can_hook(CANPacket_t *to_push) {
-  int bus = GET_BUS(to_push);
-  int addr = GET_ADDR(to_push);
-  int len = GET_LEN(to_push);
-
-  if (bus == 0) {
-    // GM exception
-    if ((addr == 0x160) && (len == 5)) {
-      // this message isn't all zeros when ignition is on
-      ignition_can = GET_BYTES(to_push, 0, 4) != 0U;
-      ignition_can_cnt = 0U;
-    }
-
-    // Tesla exception
-    if ((addr == 0x348) && (len == 8)) {
-      // GTW_status
-      ignition_can = (GET_BYTE(to_push, 0) & 0x1U) != 0U;
-      ignition_can_cnt = 0U;
-    }
-
-    // Mazda exception
-    if ((addr == 0x9E) && (len == 8)) {
-      ignition_can = (GET_BYTE(to_push, 0) >> 5) == 0x6U;
-      ignition_can_cnt = 0U;
-    }
-
-  }
-}
-
 bool can_tx_check_min_slots_free(uint32_t min) {
   return
     (can_slots_empty(&can_tx1_q) >= min) &&
@@ -244,25 +215,11 @@ bool can_check_checksum(CANPacket_t *packet) {
   return (calculate_checksum((uint8_t *) packet, CANPACKET_HEAD_SIZE + GET_LEN(packet)) == 0U);
 }
 
-void can_send(CANPacket_t *to_push, uint8_t bus_number, bool skip_tx_hook) {
-  if (skip_tx_hook || safety_tx_hook(to_push) != 0) {
-    if (bus_number < PANDA_BUS_CNT) {
-      // add CAN packet to send queue
-      if ((bus_number == 3U) && (bus_config[3].can_num_lookup == 0xFFU)) {
-        gmlan_send_errs += bitbang_gmlan(to_push) ? 0U : 1U;
-      } else {
-        tx_buffer_overflow += can_push(can_queues[bus_number], to_push) ? 0U : 1U;
-        process_can(CAN_NUM_FROM_BUS_NUM(bus_number));
-      }
-    }
-  } else {
-    safety_tx_blocked += 1U;
-    to_push->returned = 0U;
-    to_push->rejected = 1U;
-
-    // data changed
-    can_set_checksum(to_push);
-    rx_buffer_overflow += can_push(&can_rx_q, to_push) ? 0U : 1U;
+void can_send(CANPacket_t *to_push, uint8_t bus_number) {
+  if (bus_number < PANDA_BUS_CNT) {
+    // add CAN packet to send queue
+    tx_buffer_overflow += can_push(can_queues[bus_number], to_push) ? 0U : 1U;
+    process_can(CAN_NUM_FROM_BUS_NUM(bus_number));
   }
 }
 

@@ -12,12 +12,12 @@
 #include "early_init.h"
 #include "provision.h"
 
-#include "crypto/rsa.h"
-#include "crypto/sha.h"
-
-#include "obj/cert.h"
 #include "obj/gitversion.h"
 #include "flasher.h"
+
+#include "crypto/rsa.h"
+#include "crypto/sha.h"
+#include "obj/cert.h"
 
 void __initialize_hardware_early(void) {
   early_initialization();

@@ -68,17 +68,8 @@ separate IRQs for RX and TX.
 #include "drivers/timers.h"
 #include "drivers/watchdog.h"
 
-#if !defined(BOOTSTUB) && defined(PANDA)
-  #include "drivers/uart.h"
-  #include "stm32h7/lluart.h"
-#endif
-
 #include "stm32h7/board.h"
 #include "stm32h7/clock.h"
-
-#if !defined(BOOTSTUB) && defined(PANDA)
-  #include "stm32h7/llexti.h"
-#endif
 
 #ifdef BOOTSTUB
   #include "stm32h7/llflash.h"

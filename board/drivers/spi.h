@@ -135,9 +135,7 @@ void spi_rx_done(void) {
     } else {
       // Checksum was incorrect
       response_ack = false;
-      print("- incorrect data checksum ");
-      puth4(spi_data_len_mosi);
-      print("\n");
+      print("- incorrect data checksum\n");
       hexdump(spi_buf_rx, SPI_HEADER_SIZE);
       hexdump(&(spi_buf_rx[SPI_HEADER_SIZE]), MIN(spi_data_len_mosi, 64));
       print("\n");

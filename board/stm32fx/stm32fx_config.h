@@ -42,11 +42,7 @@
 #include "comms_definitions.h"
 
 #ifndef BOOTSTUB
-  #ifdef PANDA
-    #include "main_declarations.h"
-  #else
-    #include "pedal/main_declarations.h"
-  #endif
+  #include "main_declarations.h"
 #else
   #include "bootstub_declarations.h"
 #endif
@@ -66,33 +62,13 @@
 #include "stm32fx/clock.h"
 #include "drivers/watchdog.h"
 
-#if defined(PANDA) || defined(BOOTSTUB)
-  #include "drivers/spi.h"
-  #include "stm32fx/llspi.h"
-#endif
-
-#if !defined(BOOTSTUB) && (defined(PANDA) || defined(PEDAL_USB))
-  #include "drivers/uart.h"
-  #include "stm32fx/lluart.h"
-#endif
-
-#if !defined(PEDAL_USB) && !defined(PEDAL) && !defined(BOOTSTUB)
-  #include "stm32fx/llexti.h"
-#endif
-
 #ifdef BOOTSTUB
   #include "stm32fx/llflash.h"
 #else
   #include "stm32fx/llbxcan.h"
 #endif
 
-#if defined(PANDA) || defined(BOOTSTUB) || defined(PEDAL_USB)
-  #include "stm32fx/llusb.h"
-#endif
-
-#ifdef PEDAL
-  #include "stm32fx/lldac.h"
-#endif
+#include "stm32fx/llusb.h"
 
 void early_gpio_float(void) {
   RCC->AHB1ENR = RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN | RCC_AHB1ENR_GPIOCEN;

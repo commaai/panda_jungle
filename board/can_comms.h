@@ -70,7 +70,7 @@ void comms_can_write(uint8_t *data, uint32_t len) {
 
       // send out
       (void)memcpy(&to_push, can_write_buffer.data, can_write_buffer.ptr);
-      can_send(&to_push, to_push.bus, false);
+      can_send(&to_push, to_push.bus);
 
       // reset overflow buffer
       can_write_buffer.ptr = 0U;
@@ -91,7 +91,7 @@ void comms_can_write(uint8_t *data, uint32_t len) {
     if ((pos + pckt_len) <= len) {
       CANPacket_t to_push;
       (void)memcpy(&to_push, &data[pos], pckt_len);
-      can_send(&to_push, to_push.bus, false);
+      can_send(&to_push, to_push.bus);
       pos += pckt_len;
     } else {
       (void)memcpy(can_write_buffer.data, &data[pos], len - pos);
@@ -111,12 +111,8 @@ void comms_can_reset(void) {
   can_read_buffer.tail_size = 0U;
 }
 
-// TODO: make this more general!
 void refresh_can_tx_slots_available(void) {
   if (can_tx_check_min_slots_free(MAX_CAN_MSGS_PER_USB_BULK_TRANSFER)) {
     can_tx_comms_resume_usb();
-  }
-  if (can_tx_check_min_slots_free(MAX_CAN_MSGS_PER_SPI_BULK_TRANSFER)) {
-    can_tx_comms_resume_spi();
   }
 }
