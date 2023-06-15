@@ -5,6 +5,7 @@ typedef void (*board_board_tick)(void);
 typedef bool (*board_get_button)(void);
 typedef void (*board_set_panda_power)(bool enabled);
 typedef void (*board_set_ignition)(bool enabled);
+typedef void (*board_set_harness_orientation)(uint8_t orientation);
 
 struct board {
   const char *board_type;
@@ -16,6 +17,7 @@ struct board {
   board_get_button get_button;
   board_set_panda_power set_panda_power;
   board_set_ignition set_ignition;
+  board_set_harness_orientation set_harness_orientation;
 };
 
 // ******************* Definitions ********************
