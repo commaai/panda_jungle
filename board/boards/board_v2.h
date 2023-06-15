@@ -60,10 +60,6 @@ void board_v2_set_led(uint8_t color, bool enabled) {
   }
 }
 
-void board_v2_set_can_mode(uint8_t mode) {
-  UNUSED(mode);
-}
-
 void board_v2_set_harness_orientation(uint8_t orientation) {
   switch (orientation) {
     case HARNESS_ORIENTATION_NONE:
@@ -93,6 +89,10 @@ void board_v2_set_harness_orientation(uint8_t orientation) {
   }
 }
 
+void board_v2_set_can_mode(uint8_t mode) {
+  UNUSED(mode);
+}
+
 bool panda_power = false;
 void board_v2_set_panda_power(bool enable) {
   panda_power = enable;
@@ -108,6 +108,26 @@ void board_v2_set_ignition(bool enabled) {
   board_v2_set_harness_orientation(harness_orientation);
 }
 
+void board_v2_enable_can_transciever(uint8_t transciever, bool enabled) {
+  switch (transciever){
+    case 1U:
+      set_gpio_output(GPIOG, 11, !enabled);
+      break;
+    case 2U:
+      set_gpio_output(GPIOB, 3, !enabled);
+      break;
+    case 3U:
+      set_gpio_output(GPIOD, 7, !enabled);
+      break;
+    case 4U:
+      set_gpio_output(GPIOB, 4, !enabled);
+      break;
+    default:
+      print("Invalid CAN transciever ("); puth(transciever); print("): enabling failed\n");
+      break;
+  }
+}
+
 void board_v2_init(void) {
   // Disable LEDs
   board_v2_set_led(LED_RED, false);
@@ -116,6 +136,11 @@ void board_v2_init(void) {
 
   // Set normal CAN mode
   board_v2_set_can_mode(CAN_MODE_NORMAL);
+
+  // Enable CAN transcievers
+  for(uint8_t i = 1; i <= 4; i++) {
+    board_v2_enable_can_transciever(i, true);
+  }
 
   // Set to no harness orientation
   board_v2_set_harness_orientation(HARNESS_ORIENTATION_NONE);
@@ -136,5 +161,7 @@ const board board_v2 = {
   .get_button = &board_v2_get_button,
   .set_panda_power = &board_v2_set_panda_power,
   .set_ignition = &board_v2_set_ignition,
-  .set_harness_orientation = &board_v2_set_harness_orientation
+  .set_harness_orientation = &board_v2_set_harness_orientation,
+  .set_can_mode = &board_v2_set_can_mode,
+  .enable_can_transciever = &board_v2_enable_can_transciever
 };

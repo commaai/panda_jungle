@@ -27,6 +27,18 @@ int comms_control_handler(ControlPacket_t *req, uint8_t *resp) {
 #endif
 
   switch (req->request) {
+    // **** 0xa0: Set panda power.
+    case 0xa0:
+      current_board->set_panda_power((req->param1 == 1U));
+      break;
+    // **** 0xa1: Set harness orientation.
+    case 0xa1:
+      current_board->set_harness_orientation(req->param1);
+      break;
+    // **** 0xa2: Set ignition.
+    case 0xa2:
+      current_board->set_ignition((req->param1 == 1U));
+      break;
     // **** 0xa8: get microsecond timer
     case 0xa8:
       time = microsecond_timer_get();
@@ -128,6 +140,16 @@ int comms_control_handler(ControlPacket_t *req, uint8_t *resp) {
     case 0xd8:
       NVIC_SystemReset();
       break;
+    // **** 0xdb: set OBD CAN multiplexing mode
+    case 0xdb:
+      if (req->param1 == 1U) {
+        // Enable OBD CAN
+        current_board->set_can_mode(CAN_MODE_OBD_CAN2);
+      } else {
+        // Disable OBD CAN
+        current_board->set_can_mode(CAN_MODE_NORMAL);
+      }
+      break;
     // **** 0xdd: get healthpacket and CANPacket versions
     case 0xdd:
       resp[0] = HEALTH_PACKET_VERSION;
@@ -166,6 +188,20 @@ int comms_control_handler(ControlPacket_t *req, uint8_t *resp) {
       } else {
         print("Clearing CAN CAN ring buffer failed: wrong bus number\n");
       }
+      break;
+    // **** 0xf2: Clear debug ring buffer.
+    case 0xf2:
+      print("Clearing debug queue.\n");
+      clear_debug_buff();
+      break;
+    // **** 0xf4: Set CAN transceiver enable pin
+    case 0xf4:
+      current_board->enable_can_transciever(req->param1, req->param2 > 0U);
+      break;
+    // **** 0xf5: Set CAN silent mode
+    case 0xf5:
+      can_silent = (req->param1 > 0U) ? ALL_CAN_SILENT : ALL_CAN_LIVE;
+      can_init_all();
       break;
     // **** 0xf7: set green led enabled
     case 0xf7:

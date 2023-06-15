@@ -579,6 +579,18 @@ class PandaJungle:
   def set_canfd_non_iso(self, bus, non_iso):
     self._handle.controlWrite(PandaJungle.REQUEST_OUT, 0xfc, bus, int(non_iso), b'')
 
+  def set_can_silent(self, silent):
+    self._handle.controlWrite(PandaJungle.REQUEST_OUT, 0xf5, int(silent), 0, b'')
+
+  def set_panda_power(self, enabled):
+    self._handle.controlWrite(PandaJungle.REQUEST_OUT, 0xa0, int(enabled), 0, b'')
+
+  def set_harness_orientation(self, mode):
+    self._handle.controlWrite(PandaJungle.REQUEST_OUT, 0xa1, int(mode), 0, b'')
+
+  def set_ignition(self, enabled):
+    self._handle.controlWrite(PandaJungle.REQUEST_OUT, 0xa2, int(enabled), 0, b'')
+
   # ******************* can *******************
 
   # The panda will NAK CAN writes when there is CAN congestion.
@@ -647,10 +659,6 @@ class PandaJungle:
   def get_microsecond_timer(self):
     dat = self._handle.controlRead(PandaJungle.REQUEST_IN, 0xa8, 0, 0, 4)
     return struct.unpack("I", dat)[0]
-
-  # ****************** Phone *****************
-  def set_phone_power(self, enabled):
-    self._handle.controlWrite(PandaJungle.REQUEST_OUT, 0xb3, int(enabled), 0, b'')
 
   # ****************** Debug *****************
   def set_green_led(self, enabled):
