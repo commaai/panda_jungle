@@ -170,7 +170,6 @@ class PandaJungle:
 
     self._handle = None
     while self._handle is None:
-      # try USB first, then SPI
       self._handle, serial, self.bootstub, bcd = self.usb_connect(self._connect_serial, claim=claim)
       if not wait:
         break
@@ -180,15 +179,9 @@ class PandaJungle:
 
     # Some fallback logic to determine panda and MCU type for old bootstubs,
     # since we now support multiple MCUs and need to know which fw to flash.
-    # Three cases to consider:
-    # A) oldest bootstubs don't have any way to distinguish
-    #    MCU or panda type
-    # B) slightly newer (~2 weeks after first C3's built) bootstubs
-    #    have the panda type set in the USB bcdDevice
-    # C) latest bootstubs also implement the endpoint for panda type
     self._bcd_hw_type = None
     ret = self._handle.controlRead(PandaJungle.REQUEST_IN, 0xc1, 0, 0, 0x40)
-    missing_hw_type_endpoint = self.bootstub and ret.startswith(b'\xff\x00\xc1\x3e\xde\xad\xd0\x0d')
+    missing_hw_type_endpoint = (self.bootstub and ret.startswith(b'\xff\x00\xc1\x3e\xde\xad\xd0\x0d')) or len(ret) == 0
     if missing_hw_type_endpoint and bcd is not None:
       self._bcd_hw_type = bcd
 

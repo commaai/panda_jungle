@@ -110,20 +110,11 @@ void board_v1_enable_can_transciever(uint8_t transciever, bool enabled) {
 }
 
 void board_v1_init(void) {
-  GPIOA->ODR = 0;
-  GPIOB->ODR = 0;
-  GPIOA->PUPDR = 0;
-  GPIOB->AFR[0] = 0;
-  GPIOB->AFR[1] = 0;
+  common_init_gpio();
 
-  // A11,A12: USB
-  set_gpio_alternate(GPIOA, 11, GPIO_AF10_OTG_FS);
-  set_gpio_alternate(GPIOA, 12, GPIO_AF10_OTG_FS);
-  GPIOA->OSPEEDR = GPIO_OSPEEDER_OSPEEDR11 | GPIO_OSPEEDER_OSPEEDR12;
-
-  // B8,B9: CAN 1
-  set_gpio_alternate(GPIOB, 8, GPIO_AF8_CAN1);
-  set_gpio_alternate(GPIOB, 9, GPIO_AF8_CAN1);
+  // A8,A15: normal CAN3 mode
+  set_gpio_alternate(GPIOA, 8, GPIO_AF11_CAN3);
+  set_gpio_alternate(GPIOA, 15, GPIO_AF11_CAN3);
 
   board_v1_set_can_mode(CAN_MODE_NORMAL);
 
