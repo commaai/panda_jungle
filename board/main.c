@@ -49,128 +49,6 @@ void debug_ring_callback(void) {
   }
 }
 
-<<<<<<< HEAD
-// ****************************** safety mode ******************************
-
-// this is the only way to leave silent mode
-void set_safety_mode(uint16_t mode, uint16_t param) {
-  uint16_t mode_copy = mode;
-  int err = set_safety_hooks(mode_copy, param);
-  if (err == -1) {
-    print("Error: safety set mode failed. Falling back to SILENT\n");
-    mode_copy = SAFETY_SILENT;
-    err = set_safety_hooks(mode_copy, 0U);
-    if (err == -1) {
-      print("Error: Failed setting SILENT mode. Hanging\n");
-      while (true) {
-        // TERMINAL ERROR: we can't continue if SILENT safety mode isn't succesfully set
-      }
-    }
-  }
-  safety_tx_blocked = 0;
-  safety_rx_invalid = 0;
-
-  switch (mode_copy) {
-    case SAFETY_SILENT:
-      set_intercept_relay(false);
-      if (current_board->has_obd) {
-        current_board->set_can_mode(CAN_MODE_NORMAL);
-      }
-      can_silent = ALL_CAN_SILENT;
-      break;
-    case SAFETY_NOOUTPUT:
-      set_intercept_relay(false);
-      if (current_board->has_obd) {
-        current_board->set_can_mode(CAN_MODE_NORMAL);
-      }
-      can_silent = ALL_CAN_LIVE;
-      break;
-    case SAFETY_ELM327:
-      set_intercept_relay(false);
-      heartbeat_counter = 0U;
-      heartbeat_lost = false;
-      if (current_board->has_obd) {
-        if (param == 0U) {
-          current_board->set_can_mode(CAN_MODE_OBD_CAN2);
-        } else {
-          current_board->set_can_mode(CAN_MODE_NORMAL);
-        }
-      }
-      can_silent = ALL_CAN_LIVE;
-      break;
-<<<<<<< HEAD
-    // **** 0xde: set can bitrate
-    case 0xde:
-      if (setup->b.wValue.w < BUS_MAX) {
-        can_speed[setup->b.wValue.w] = setup->b.wIndex.w;
-        can_init(CAN_NUM_FROM_BUS_NUM(setup->b.wValue.w));
-      }
-      break;
-    // **** 0xe0: debug read
-    case 0xe0:
-      // read
-      while ((resp_len < MIN(setup->b.wLength.w, MAX_RESP_LEN)) &&
-                         getc((char*)&resp[resp_len])) {
-        ++resp_len;
-      }
-      break;
-    // **** 0xe5: set CAN loopback (for testing)
-    case 0xe5:
-      can_loopback = (setup->b.wValue.w > 0U);
-      can_init_all();
-      break;
-    // **** 0xf1: Clear CAN ring buffer.
-    case 0xf1:
-      if (setup->b.wValue.w == 0xFFFFU) {
-        puts("Clearing CAN Rx queue\n");
-        can_clear(&can_rx_q);
-      } else if (setup->b.wValue.w < BUS_MAX) {
-        puts("Clearing CAN Tx queue\n");
-        can_clear(can_queues[setup->b.wValue.w]);
-      } else {
-        puts("Clearing CAN CAN ring buffer failed: wrong bus number\n");
-      }
-      break;
-    // **** 0xf2: Clear debug ring buffer.
-    case 0xf2:
-      {
-        puts("Clearing debug queue.\n");
-        clear_debug_buff();
-        break;
-      }
-    // **** 0xf4: Set CAN transceiver enable pin
-    case 0xf4:
-      board_enable_can_transciever(setup->b.wValue.w, setup->b.wIndex.w > 0U);
-      break;
-    // **** 0xf5: Set CAN silent mode
-    case 0xf5:
-      can_silent = (setup->b.wValue.w > 0U) ? ALL_CAN_SILENT : ALL_CAN_LIVE;
-      can_init_all();
-      break;
-=======
->>>>>>> e7c4b5d (copy latest panda fw (adc0c12))
-    default:
-      set_intercept_relay(true);
-      heartbeat_counter = 0U;
-      heartbeat_lost = false;
-      if (current_board->has_obd) {
-        current_board->set_can_mode(CAN_MODE_NORMAL);
-      }
-      can_silent = ALL_CAN_LIVE;
-      break;
-  }
-  can_init_all();
-}
-
-bool is_car_safety_mode(uint16_t mode) {
-  return (mode != SAFETY_SILENT) &&
-         (mode != SAFETY_NOOUTPUT) &&
-         (mode != SAFETY_ALLOUTPUT) &&
-         (mode != SAFETY_ELM327);
-}
-
-=======
->>>>>>> 7043877 (no build errors)
 // ***************************** main code *****************************
 
 // cppcheck-suppress unusedFunction ; used in headers not included in cppcheck
@@ -183,31 +61,11 @@ void __attribute__ ((noinline)) enable_fpu(void) {
   SCB->CPACR |= ((3UL << (10U * 2U)) | (3UL << (11U * 2U)));
 }
 
-<<<<<<< HEAD
-// go into SILENT when heartbeat isn't received for this amount of seconds.
-#define HEARTBEAT_IGNITION_CNT_ON 5U
-#define HEARTBEAT_IGNITION_CNT_OFF 2U
-
-<<<<<<< HEAD
-// called at 10 Hz
-// cppcheck-suppress unusedFunction ; used in headers not included in cppcheck
-void TIM3_IRQHandler(void) {
-  static uint32_t tcnt = 0;
-  static uint32_t button_press_cnt = 0;
-=======
-=======
->>>>>>> 7043877 (no build errors)
 // called at 8Hz
 uint8_t loop_counter = 0U;
+uint16_t button_press_cnt = 0U;
 void tick_handler(void) {
   if (TICK_TIMER->SR != 0) {
-<<<<<<< HEAD
-    // siren
-    current_board->set_siren((loop_counter & 1U) && (siren_enabled || (siren_countdown > 0U)));
->>>>>>> e7c4b5d (copy latest panda fw (adc0c12))
-=======
->>>>>>> 7043877 (no build errors)
-
     // tick drivers at 8Hz
     usb_tick();
     simple_watchdog_kick();

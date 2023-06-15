@@ -28,6 +28,16 @@ void board_v2_set_panda_power(bool enable) {
   panda_power = enable;
 }
 
+bool board_v2_get_button(void) {
+  // TODO
+  return false;
+}
+
+void board_v2_set_ignition(bool enabled) {
+  // TODO
+  UNUSED(enabled);
+}
+
 void board_v2_init(void) {
 
   // Disable LEDs
@@ -54,4 +64,7 @@ const board board_v2 = {
   .init = &board_v2_init,
   .set_led = &board_v2_set_led,
   .board_tick = &board_v2_tick,
+  .get_button = &board_v2_get_button,
+  .set_panda_power = &board_v2_set_panda_power,
+  .set_ignition = &board_v2_set_ignition
 };

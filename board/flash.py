@@ -10,7 +10,7 @@ if __name__ == "__main__":
   subprocess.check_call(f"scons -C {board_path}/.. -j$(nproc) {board_path}", shell=True)
 
   serials = PandaJungle.list()
-  print(f"found {len(serials)} panda(s) - {serials}")
+  print(f"found {len(serials)} panda jungle(s) - {serials}")
   for s in serials:
     print("flashing", s)
     with PandaJungle(serial=s) as p:

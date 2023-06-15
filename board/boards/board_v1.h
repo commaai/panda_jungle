@@ -80,6 +80,16 @@ void board_v1_set_panda_power(bool enable) {
   set_gpio_output(GPIOB, 14, enable);
 }
 
+bool board_v1_get_button(void) {
+  // TODO
+  return false;
+}
+
+void board_v1_set_ignition(bool enabled) {
+  // TODO
+  UNUSED(enabled);
+}
+
 void board_v1_init(void) {
   GPIOA->ODR = 0;
   GPIOB->ODR = 0;
@@ -130,4 +140,7 @@ const board board_v1 = {
   .init = &board_v1_init,
   .set_led = &board_v1_set_led,
   .board_tick = &board_v1_tick,
+  .get_button = &board_v1_get_button,
+  .set_panda_power = &board_v1_set_panda_power,
+  .set_ignition = &board_v1_set_ignition
 };

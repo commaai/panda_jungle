@@ -2,6 +2,9 @@
 typedef void (*board_init)(void);
 typedef void (*board_set_led)(uint8_t color, bool enabled);
 typedef void (*board_board_tick)(void);
+typedef bool (*board_get_button)(void);
+typedef void (*board_set_panda_power)(bool enabled);
+typedef void (*board_set_ignition)(bool enabled);
 
 struct board {
   const char *board_type;
@@ -10,6 +13,9 @@ struct board {
   board_init init;
   board_set_led set_led;
   board_board_tick board_tick;
+  board_get_button get_button;
+  board_set_panda_power set_panda_power;
+  board_set_ignition set_ignition;
 };
 
 // ******************* Definitions ********************
