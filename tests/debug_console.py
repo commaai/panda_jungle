@@ -35,6 +35,7 @@ if __name__ == "__main__":
             else:
               break
           time.sleep(0.01)
-    except:
+    except Exception as e:
+      print(e)
       print("panda jungle disconnected!")
       time.sleep(0.5);

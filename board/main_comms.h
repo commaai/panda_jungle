@@ -143,6 +143,13 @@ int comms_control_handler(ControlPacket_t *req, uint8_t *resp) {
         UNUSED(ret);
       }
       break;
+    // **** 0xe0: debug read
+    case 0xe0:
+      // read
+      while ((resp_len < MIN(req->length, USBPACKET_MAX_SIZE)) && getc((char*)&resp[resp_len])) {
+        ++resp_len;
+      }
+      break;
     // **** 0xe5: set CAN loopback (for testing)
     case 0xe5:
       can_loopback = (req->param1 > 0U);

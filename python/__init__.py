@@ -634,32 +634,14 @@ class PandaJungle:
 
   # ******************* serial *******************
 
-  def serial_read(self, port_number):
+  def debug_read(self):
     ret = []
     while 1:
-      lret = bytes(self._handle.controlRead(PandaJungle.REQUEST_IN, 0xe0, port_number, 0, 0x40))
+      lret = bytes(self._handle.controlRead(PandaJungle.REQUEST_IN, 0xe0, 0, 0, 0x40))
       if len(lret) == 0:
         break
       ret.append(lret)
     return b''.join(ret)
-
-  def serial_write(self, port_number, ln):
-    ret = 0
-    if type(ln) == str:
-      ln = bytes(ln, 'utf-8')
-    for i in range(0, len(ln), 0x20):
-      ret += self._handle.bulkWrite(2, struct.pack("B", port_number) + ln[i:i + 0x20])
-    return ret
-
-  def serial_clear(self, port_number):
-    """Clears all messages (tx and rx) from the specified internal uart
-    ringbuffer as though it were drained.
-
-    Args:
-      port_number (int): port number of the uart to clear.
-
-    """
-    self._handle.controlWrite(PandaJungle.REQUEST_OUT, 0xf2, port_number, 0, b'')
 
   # ****************** Timer *****************
   def get_microsecond_timer(self):
