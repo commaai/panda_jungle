@@ -40,7 +40,7 @@ uint32_t ignition_can_cnt = 0U;
 int can_live = 0;
 int pending_can_live = 0;
 int can_loopback = 0;
-int can_silent = ALL_CAN_SILENT;
+int can_silent = ALL_CAN_LIVE;
 
 // ******************* functions prototypes *********************
 bool can_init(uint8_t can_number);

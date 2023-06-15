@@ -90,7 +90,39 @@ void board_v2_set_harness_orientation(uint8_t orientation) {
 }
 
 void board_v2_set_can_mode(uint8_t mode) {
-  UNUSED(mode);
+  switch (mode) {
+    case CAN_MODE_NORMAL:
+      // B12,B13: disable normal mode
+      set_gpio_pullup(GPIOB, 12, PULL_NONE);
+      set_gpio_mode(GPIOB, 12, MODE_ANALOG);
+
+      set_gpio_pullup(GPIOB, 13, PULL_NONE);
+      set_gpio_mode(GPIOB, 13, MODE_ANALOG);
+
+      // B5,B6: FDCAN2 mode
+      set_gpio_pullup(GPIOB, 5, PULL_NONE);
+      set_gpio_alternate(GPIOB, 5, GPIO_AF9_FDCAN2);
+
+      set_gpio_pullup(GPIOB, 6, PULL_NONE);
+      set_gpio_alternate(GPIOB, 6, GPIO_AF9_FDCAN2);
+      break;
+    case CAN_MODE_OBD_CAN2:
+      // B5,B6: disable normal mode
+      set_gpio_pullup(GPIOB, 5, PULL_NONE);
+      set_gpio_mode(GPIOB, 5, MODE_ANALOG);
+
+      set_gpio_pullup(GPIOB, 6, PULL_NONE);
+      set_gpio_mode(GPIOB, 6, MODE_ANALOG);
+      // B12,B13: FDCAN2 mode
+      set_gpio_pullup(GPIOB, 12, PULL_NONE);
+      set_gpio_alternate(GPIOB, 12, GPIO_AF9_FDCAN2);
+
+      set_gpio_pullup(GPIOB, 13, PULL_NONE);
+      set_gpio_alternate(GPIOB, 13, GPIO_AF9_FDCAN2);
+      break;
+    default:
+      break;
+  }
 }
 
 bool panda_power = false;
@@ -129,12 +161,14 @@ void board_v2_enable_can_transciever(uint8_t transciever, bool enabled) {
 }
 
 void board_v2_init(void) {
+  common_init_gpio();
+
   // Disable LEDs
   board_v2_set_led(LED_RED, false);
   board_v2_set_led(LED_GREEN, false);
   board_v2_set_led(LED_BLUE, false);
 
-  // Set normal CAN mode
+  // Normal CAN mode
   board_v2_set_can_mode(CAN_MODE_NORMAL);
 
   // Enable CAN transcievers

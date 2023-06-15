@@ -169,6 +169,7 @@ int main(void) {
   print("**** INTERRUPTS ON ****\n");
   enable_interrupts();
 
+  can_init_all();
   current_board->set_harness_orientation(HARNESS_ORIENTATION_2);
 
   // LED should keep on blinking all the time
