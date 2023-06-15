@@ -85,6 +85,14 @@ void tick_handler(void) {
       // check registers
       check_registers();
 
+      // turn off the blue LED, turned on by CAN
+      current_board->set_led(LED_BLUE, false);
+
+      // Blink and OBD CAN
+#ifdef FINAL_PROVISIONING
+      current_board->set_can_mode(can_mode == CAN_MODE_NORMAL ? CAN_MODE_OBD_CAN2 : CAN_MODE_NORMAL);
+#endif
+
       // on to the next one
       uptime_cnt += 1U;
     }
@@ -100,7 +108,7 @@ void tick_handler(void) {
 
 #ifdef FINAL_PROVISIONING
     // ign on for 0.3s, off for 0.2s
-    const bool ign = (tcnt % (3+2)) < 3;
+    const bool ign = (loop_counter % (3+2)) < 3;
     if (ign != ignition) {
       current_board->set_ignition(ign);
     }

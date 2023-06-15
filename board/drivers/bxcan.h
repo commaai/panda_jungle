@@ -79,6 +79,7 @@ void process_can(uint8_t can_number) {
           WORD_TO_BYTE_ARRAY(&to_push.data[4], CAN->sTxMailBox[0].TDHR);
           can_set_checksum(&to_push);
 
+          current_board->set_led(LED_BLUE, true);
           rx_buffer_overflow += can_push(&can_rx_q, &to_push) ? 0U : 1U;
         }
 

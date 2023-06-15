@@ -51,6 +51,9 @@ common_flags += ["-DALLOW_DEBUG"]
 if os.getenv("DEBUG"):
   common_flags += ["-DDEBUG"]
 
+if os.getenv("FINAL_PROVISIONING"):
+  common_flags += ["-DFINAL_PROVISIONING"]
+
 includes = [
   "stm32fx/inc",
   "stm32h7/inc",

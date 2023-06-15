@@ -114,6 +114,7 @@ void process_can(uint8_t can_number) {
           (void)memcpy(to_push.data, to_send.data, dlc_to_len[to_push.data_len_code]);
           can_set_checksum(&to_push);
 
+          current_board->set_led(LED_BLUE, true);
           rx_buffer_overflow += can_push(&can_rx_q, &to_push) ? 0U : 1U;
         } else {
           can_health[can_number].total_tx_checksum_error_cnt += 1U;
