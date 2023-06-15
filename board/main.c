@@ -170,7 +170,7 @@ int main(void) {
   enable_interrupts();
 
   can_init_all();
-  current_board->set_harness_orientation(HARNESS_ORIENTATION_2);
+  current_board->set_harness_orientation(HARNESS_ORIENTATION_1);
 
   // LED should keep on blinking all the time
   uint64_t cnt = 0;
