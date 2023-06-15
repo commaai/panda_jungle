@@ -8,6 +8,7 @@ typedef void (*board_set_ignition)(bool enabled);
 typedef void (*board_set_harness_orientation)(uint8_t orientation);
 typedef void (*board_set_can_mode)(uint8_t mode);
 typedef void (*board_enable_can_transciever)(uint8_t transciever, bool enabled);
+typedef float (*board_get_channel_power)(uint8_t channel);
 
 struct board {
   const char *board_type;
@@ -22,6 +23,7 @@ struct board {
   board_set_harness_orientation set_harness_orientation;
   board_set_can_mode set_can_mode;
   board_enable_can_transciever enable_can_transciever;
+  board_get_channel_power get_channel_power;
 };
 
 // ******************* Definitions ********************

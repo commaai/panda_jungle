@@ -5,6 +5,12 @@ int get_health_pkt(void *dat) {
   struct health_t * health = (struct health_t*)dat;
 
   health->uptime_pkt = uptime_cnt;
+  health->ch1_power = current_board->get_channel_power(1U);
+  health->ch2_power = current_board->get_channel_power(2U);
+  health->ch3_power = current_board->get_channel_power(3U);
+  health->ch4_power = current_board->get_channel_power(4U);
+  health->ch5_power = current_board->get_channel_power(5U);
+  health->ch5_power = current_board->get_channel_power(6U);
 
   return sizeof(*health);
 }

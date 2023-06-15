@@ -160,6 +160,19 @@ void board_v2_enable_can_transciever(uint8_t transciever, bool enabled) {
   }
 }
 
+float board_v2_get_channel_power(uint8_t channel) {
+  float ret = 0.0f;
+  if ((channel >= 1U) && (channel <= 6U)) {
+    uint16_t readout = adc_get_mV(channel - 1U); // these are mapped nicely in hardware
+
+    //ret = (float) readout / (166666.6f / 12.0f);
+    ret = (float) readout / 1000.0f;
+  } else {
+    print("Invalid channel ("); puth(channel); print(")\n");
+  }
+  return ret;
+}
+
 void board_v2_init(void) {
   common_init_gpio();
 
@@ -181,6 +194,14 @@ void board_v2_init(void) {
 
   // Enable panda power by default
   board_v2_set_panda_power(true);
+
+  // Current monitor channels
+  adc_init();
+  register_set_bits(&SYSCFG->PMCR, SYSCFG_PMCR_PA0SO | SYSCFG_PMCR_PA1SO); // open up analog switches for PA0_C and PA1_C
+  set_gpio_mode(GPIOF, 11, MODE_ANALOG);
+  set_gpio_mode(GPIOA, 6, MODE_ANALOG);
+  set_gpio_mode(GPIOC, 4, MODE_ANALOG);
+  set_gpio_mode(GPIOB, 1, MODE_ANALOG);
 }
 
 void board_v2_tick(void) {}
@@ -188,7 +209,7 @@ void board_v2_tick(void) {}
 const board board_v2 = {
   .board_type = "V2",
   .has_canfd = true,
-  .avdd_mV = 1800U,
+  .avdd_mV = 3300U,
   .init = &board_v2_init,
   .set_led = &board_v2_set_led,
   .board_tick = &board_v2_tick,
@@ -197,5 +218,6 @@ const board board_v2 = {
   .set_ignition = &board_v2_set_ignition,
   .set_harness_orientation = &board_v2_set_harness_orientation,
   .set_can_mode = &board_v2_set_can_mode,
-  .enable_can_transciever = &board_v2_enable_can_transciever
+  .enable_can_transciever = &board_v2_enable_can_transciever,
+  .get_channel_power = &board_v2_get_channel_power,
 };

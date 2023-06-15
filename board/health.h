@@ -3,6 +3,12 @@
 #define HEALTH_PACKET_VERSION 1
 struct __attribute__((packed)) health_t {
   uint32_t uptime_pkt;
+  float ch1_power;
+  float ch2_power;
+  float ch3_power;
+  float ch4_power;
+  float ch5_power;
+  float ch6_power;
 };
 
 #define CAN_HEALTH_PACKET_VERSION 4

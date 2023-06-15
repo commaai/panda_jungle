@@ -134,7 +134,7 @@ class PandaJungle:
   CAN_PACKET_VERSION = 4
   HEALTH_PACKET_VERSION = 1
   CAN_HEALTH_PACKET_VERSION = 4
-  HEALTH_STRUCT = struct.Struct("<I")
+  HEALTH_STRUCT = struct.Struct("<Iffffff")
   CAN_HEALTH_STRUCT = struct.Struct("<BIBBBBBBBBIIIIIIIHHBBB")
 
   HARNESS_ORIENTATION_NONE = 0
@@ -426,6 +426,12 @@ class PandaJungle:
     a = self.HEALTH_STRUCT.unpack(dat)
     return {
       "uptime": a[0],
+      "ch1_power": a[1],
+      "ch2_power": a[2],
+      "ch3_power": a[3],
+      "ch4_power": a[4],
+      "ch5_power": a[5],
+      "ch6_power": a[6],
     }
 
   @ensure_can_health_packet_version

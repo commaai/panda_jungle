@@ -109,6 +109,11 @@ void board_v1_enable_can_transciever(uint8_t transciever, bool enabled) {
   }
 }
 
+float board_v1_get_channel_power(uint8_t channel) {
+  UNUSED(channel);
+  return 0.0f;
+}
+
 void board_v1_init(void) {
   common_init_gpio();
 
@@ -152,5 +157,6 @@ const board board_v1 = {
   .set_ignition = &board_v1_set_ignition,
   .set_harness_orientation = &board_v1_set_harness_orientation,
   .set_can_mode = &board_v1_set_can_mode,
-  .enable_can_transciever = &board_v1_enable_can_transciever
+  .enable_can_transciever = &board_v1_enable_can_transciever,
+  .get_channel_power = &board_v1_get_channel_power
 };

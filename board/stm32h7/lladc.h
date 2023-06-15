@@ -1,6 +1,3 @@
-// 5VOUT_S = ADC12_INP5
-// VOLT_S = ADC1_INP2
-#define ADCCHAN_VIN 2
 
 void adc_init(void) {
   ADC1->CR &= ~(ADC_CR_DEEPPWD); //Reset deep-power-down mode
@@ -18,7 +15,6 @@ void adc_init(void) {
 }
 
 uint16_t adc_get_raw(uint8_t channel) {
-
   ADC1->SQR1 &= ~(ADC_SQR1_L);
   ADC1->SQR1 = ((uint32_t) channel << 6U);
 
