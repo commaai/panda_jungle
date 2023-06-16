@@ -86,6 +86,7 @@ void peripherals_init(void) {
   RCC->APB1LENR |= RCC_APB1LENR_TIM12EN;  // slow loop
   RCC->APB1LENR |= RCC_APB1LENR_I2C5EN;  // codec I2C
   RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;  // clock source timer
+  RCC->AHB3ENR |= RCC_AHB3ENR_SDMMC1EN; // SDMMC
 
   RCC->APB1HENR |= RCC_APB1HENR_FDCANEN; // FDCAN core enable
   RCC->AHB1ENR |= RCC_AHB1ENR_ADC12EN; // Enable ADC12 clocks

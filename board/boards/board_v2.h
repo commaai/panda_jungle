@@ -254,6 +254,36 @@ void board_v2_init(void) {
   set_gpio_mode(GPIOF, 4, MODE_ANALOG);
   set_gpio_mode(GPIOC, 0, MODE_ANALOG);
   set_gpio_mode(GPIOC, 1, MODE_ANALOG);
+
+  // SD card interface
+  // set_gpio_output(GPIOC, 8, 0);
+  // set_gpio_output(GPIOC, 9, 0);
+  // set_gpio_output(GPIOC, 10, 0);
+  // set_gpio_output(GPIOC, 11, 0);
+  // set_gpio_output(GPIOC, 12, 0);
+  // set_gpio_output(GPIOD, 2, 0);
+  set_gpio_mode(GPIOC, 8, MODE_INPUT);
+  set_gpio_alternate(GPIOC, 8, GPIO_AF12_SDMMC1);
+  set_gpio_alternate(GPIOC, 9, GPIO_AF12_SDMMC1);
+  set_gpio_alternate(GPIOC, 10, GPIO_AF12_SDMMC1);
+  set_gpio_alternate(GPIOC, 11, GPIO_AF12_SDMMC1);
+  set_gpio_alternate(GPIOC, 12, GPIO_AF12_SDMMC1);
+  set_gpio_alternate(GPIOD, 2, GPIO_AF12_SDMMC1);
+  sdmmc_init();
+
+  uint8_t data[512];
+  if(sdmmc_read_blocks(0, 1, (uint8_t *) &data)) {
+    print("SD card read: ");
+    for (int i = 0; i < 512; i++) {
+      puth(data[i]);
+      print(" ");
+      if (i % 16 == 15) {
+        print("\n");
+      }
+    }
+  } else {
+    print("SD card read failed\n");
+  }
 }
 
 void board_v2_tick(void) {}

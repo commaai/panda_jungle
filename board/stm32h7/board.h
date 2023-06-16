@@ -7,6 +7,7 @@
 // ///// Board definition and detection ///// //
 #include "stm32h7/lladc.h"
 #include "stm32h7/lldac.h"
+#include "stm32h7/llsdmmc.h"
 
 #include "boards/board_v2.h"
 
