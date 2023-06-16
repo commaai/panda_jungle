@@ -9,6 +9,7 @@ typedef void (*board_set_harness_orientation)(uint8_t orientation);
 typedef void (*board_set_can_mode)(uint8_t mode);
 typedef void (*board_enable_can_transciever)(uint8_t transciever, bool enabled);
 typedef float (*board_get_channel_power)(uint8_t channel);
+typedef uint16_t (*board_get_sbu_mV)(uint8_t channel, uint8_t sbu);
 
 struct board {
   const char *board_type;
@@ -24,6 +25,7 @@ struct board {
   board_set_can_mode set_can_mode;
   board_enable_can_transciever enable_can_transciever;
   board_get_channel_power get_channel_power;
+  board_get_sbu_mV get_sbu_mV;
 };
 
 // ******************* Definitions ********************
@@ -46,6 +48,9 @@ struct board {
 #define HARNESS_ORIENTATION_NONE 0U
 #define HARNESS_ORIENTATION_1 1U
 #define HARNESS_ORIENTATION_2 2U
+
+#define SBU1 0U
+#define SBU2 1U
 
 // ********************* Globals **********************
 uint8_t harness_orientation = HARNESS_ORIENTATION_NONE;

@@ -12,6 +12,19 @@ int get_health_pkt(void *dat) {
   health->ch5_power = current_board->get_channel_power(5U);
   health->ch6_power = current_board->get_channel_power(6U);
 
+  health->ch1_sbu1_mV = current_board->get_sbu_mV(1U, SBU1);
+  health->ch1_sbu2_mV = current_board->get_sbu_mV(1U, SBU2);
+  health->ch2_sbu1_mV = current_board->get_sbu_mV(2U, SBU1);
+  health->ch2_sbu2_mV = current_board->get_sbu_mV(2U, SBU2);
+  health->ch3_sbu1_mV = current_board->get_sbu_mV(3U, SBU1);
+  health->ch3_sbu2_mV = current_board->get_sbu_mV(3U, SBU2);
+  health->ch4_sbu1_mV = current_board->get_sbu_mV(4U, SBU1);
+  health->ch4_sbu2_mV = current_board->get_sbu_mV(4U, SBU2);
+  health->ch5_sbu1_mV = current_board->get_sbu_mV(5U, SBU1);
+  health->ch5_sbu2_mV = current_board->get_sbu_mV(5U, SBU2);
+  health->ch6_sbu1_mV = current_board->get_sbu_mV(6U, SBU1);
+  health->ch6_sbu2_mV = current_board->get_sbu_mV(6U, SBU2);
+
   return sizeof(*health);
 }
 

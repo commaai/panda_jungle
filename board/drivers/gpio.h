@@ -10,7 +10,7 @@
 #define OUTPUT_TYPE_PUSH_PULL 0U
 #define OUTPUT_TYPE_OPEN_DRAIN 1U
 
-typedef struct gpio_t {
+typedef struct {
   GPIO_TypeDef *bank;
   uint8_t pin;
 } gpio_t;

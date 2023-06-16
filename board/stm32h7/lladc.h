@@ -1,37 +1,54 @@
 
-void adc_init(void) {
-  ADC1->CR &= ~(ADC_CR_DEEPPWD); //Reset deep-power-down mode
-  ADC1->CR |= ADC_CR_ADVREGEN; // Enable ADC regulator
-  while(!(ADC1->ISR & ADC_ISR_LDORDY));
+typedef struct {
+  ADC_TypeDef *adc;
+  uint8_t channel;
+} adc_channel_t;
 
-  ADC1->CR &= ~(ADC_CR_ADCALDIF); // Choose single-ended calibration
-  ADC1->CR |= ADC_CR_ADCALLIN; // Lineriality calibration
-  ADC1->CR |= ADC_CR_ADCAL; // Start calibrtation
-  while((ADC1->CR & ADC_CR_ADCAL) != 0);
+void adc_init(ADC_TypeDef *adc) {
+  adc->CR &= ~(ADC_CR_DEEPPWD); // Reset deep-power-down mode
+  adc->CR |= ADC_CR_ADVREGEN; // Enable ADC regulator
+  while(!(adc->ISR & ADC_ISR_LDORDY) && (adc != ADC3));
 
-  ADC1->ISR |= ADC_ISR_ADRDY;
-  ADC1->CR |= ADC_CR_ADEN;
-  while(!(ADC1->ISR & ADC_ISR_ADRDY));
+  if (adc != ADC3) {
+    adc->CR &= ~(ADC_CR_ADCALDIF); // Choose single-ended calibration
+    adc->CR |= ADC_CR_ADCALLIN; // Lineriality calibration
+  }
+  adc->CR |= ADC_CR_ADCAL; // Start calibrtation
+  while((adc->CR & ADC_CR_ADCAL) != 0);
+
+  adc->ISR |= ADC_ISR_ADRDY;
+  adc->CR |= ADC_CR_ADEN;
+  while(!(adc->ISR & ADC_ISR_ADRDY));
 }
 
-uint16_t adc_get_raw(uint8_t channel) {
-  ADC1->SQR1 &= ~(ADC_SQR1_L);
-  ADC1->SQR1 = ((uint32_t) channel << 6U);
+uint16_t adc_get_raw(ADC_TypeDef *adc, uint8_t channel) {
+  adc->SQR1 &= ~(ADC_SQR1_L);
+  adc->SQR1 = ((uint32_t) channel << 6U);
 
-  ADC1->SMPR1 = (0x7U << (channel * 3U) );
-  ADC1->PCSEL_RES0 = (0x1U << channel);
+  if (channel < 10U) {
+    adc->SMPR1 = (0x7U << (channel * 3U));
+  } else {
+    adc->SMPR2 = (0x7U << ((channel - 10U) * 3U));
+  }
+  adc->PCSEL_RES0 = (0x1U << channel);
 
-  ADC1->CR |= ADC_CR_ADSTART;
-  while (!(ADC1->ISR & ADC_ISR_EOC));
+  adc->CR |= ADC_CR_ADSTART;
+  while (!(adc->ISR & ADC_ISR_EOC));
 
-  uint16_t res = ADC1->DR;
+  uint16_t res = adc->DR;
 
-  while (!(ADC1->ISR & ADC_ISR_EOS));
-  ADC1->ISR |= ADC_ISR_EOS;
+  while (!(adc->ISR & ADC_ISR_EOS));
+  adc->ISR |= ADC_ISR_EOS;
 
   return res;
 }
 
-uint16_t adc_get_mV(uint8_t channel) {
-  return (adc_get_raw(channel) * current_board->avdd_mV) / 65535U;
+uint16_t adc_get_mV(ADC_TypeDef *adc, uint8_t channel) {
+  uint16_t ret = 0;
+  if ((adc == ADC1) || (adc == ADC2)) {
+    ret = (adc_get_raw(adc, channel) * current_board->avdd_mV) / 65535U;
+  } else if (adc == ADC3) {
+    ret = (adc_get_raw(adc, channel) * current_board->avdd_mV) / 4095U;
+  } else {}
+  return ret;
 }

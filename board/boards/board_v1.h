@@ -114,6 +114,11 @@ float board_v1_get_channel_power(uint8_t channel) {
   return 0.0f;
 }
 
+uint16_t board_v1_get_sbu_mV(uint8_t channel, uint8_t sbu) {
+  UNUSED(channel); UNUSED(sbu);
+  return 0U;
+}
+
 void board_v1_init(void) {
   common_init_gpio();
 
@@ -158,5 +163,6 @@ const board board_v1 = {
   .set_harness_orientation = &board_v1_set_harness_orientation,
   .set_can_mode = &board_v1_set_can_mode,
   .enable_can_transciever = &board_v1_enable_can_transciever,
-  .get_channel_power = &board_v1_get_channel_power
+  .get_channel_power = &board_v1_get_channel_power,
+  .get_sbu_mV = &board_v1_get_sbu_mV,
 };

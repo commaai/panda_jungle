@@ -134,7 +134,7 @@ class PandaJungle:
   CAN_PACKET_VERSION = 4
   HEALTH_PACKET_VERSION = 1
   CAN_HEALTH_PACKET_VERSION = 4
-  HEALTH_STRUCT = struct.Struct("<Iffffff")
+  HEALTH_STRUCT = struct.Struct("<IffffffHHHHHHHHHHHH")
   CAN_HEALTH_STRUCT = struct.Struct("<BIBBBBBBBBIIIIIIIHHBBB")
 
   HARNESS_ORIENTATION_NONE = 0
@@ -432,6 +432,18 @@ class PandaJungle:
       "ch4_power": a[4],
       "ch5_power": a[5],
       "ch6_power": a[6],
+      "ch1_sbu1_voltage": a[7] / 1000.0,
+      "ch1_sbu2_voltage": a[8] / 1000.0,
+      "ch2_sbu1_voltage": a[9] / 1000.0,
+      "ch2_sbu2_voltage": a[10] / 1000.0,
+      "ch3_sbu1_voltage": a[11] / 1000.0,
+      "ch3_sbu2_voltage": a[12] / 1000.0,
+      "ch4_sbu1_voltage": a[13] / 1000.0,
+      "ch4_sbu2_voltage": a[14] / 1000.0,
+      "ch5_sbu1_voltage": a[15] / 1000.0,
+      "ch5_sbu2_voltage": a[16] / 1000.0,
+      "ch6_sbu1_voltage": a[17] / 1000.0,
+      "ch6_sbu2_voltage": a[18] / 1000.0,
     }
 
   @ensure_can_health_packet_version

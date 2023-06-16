@@ -44,6 +44,24 @@ const gpio_t sbu2_relay_pins[] = {
   {.bank = GPIOE, .pin = 12},
 };
 
+const adc_channel_t sbu1_channels[] = {
+  {.adc = ADC3, .channel = 12},
+  {.adc = ADC3, .channel = 2},
+  {.adc = ADC3, .channel = 4},
+  {.adc = ADC3, .channel = 6},
+  {.adc = ADC3, .channel = 8},
+  {.adc = ADC3, .channel = 10},
+};
+
+const adc_channel_t sbu2_channels[] = {
+  {.adc = ADC1, .channel = 13},
+  {.adc = ADC3, .channel = 3},
+  {.adc = ADC3, .channel = 5},
+  {.adc = ADC3, .channel = 7},
+  {.adc = ADC3, .channel = 9},
+  {.adc = ADC3, .channel = 11},
+};
+
 void board_v2_set_led(uint8_t color, bool enabled) {
   switch (color) {
     case LED_RED:
@@ -163,9 +181,29 @@ void board_v2_enable_can_transciever(uint8_t transciever, bool enabled) {
 float board_v2_get_channel_power(uint8_t channel) {
   float ret = 0.0f;
   if ((channel >= 1U) && (channel <= 6U)) {
-    uint16_t readout = adc_get_mV(channel - 1U); // these are mapped nicely in hardware
+    uint16_t readout = adc_get_mV(ADC1, channel - 1U); // these are mapped nicely in hardware
 
     ret = (float) readout / 1587.3f * 12.0f;
+  } else {
+    print("Invalid channel ("); puth(channel); print(")\n");
+  }
+  return ret;
+}
+
+uint16_t board_v1_get_sbu_mV(uint8_t channel, uint8_t sbu) {
+  uint16_t ret = 0U;
+  if ((channel >= 1U) && (channel <= 6U)) {
+    switch(sbu){
+      case SBU1:
+        ret = adc_get_mV(sbu1_channels[channel - 1U].adc, sbu1_channels[channel - 1U].channel);
+        break;
+      case SBU2:
+        ret = adc_get_mV(sbu2_channels[channel - 1U].adc, sbu2_channels[channel - 1U].channel);
+        break;
+      default:
+        print("Invalid SBU ("); puth(sbu); print(")\n");
+        break;
+    }
   } else {
     print("Invalid channel ("); puth(channel); print(")\n");
   }
@@ -195,12 +233,27 @@ void board_v2_init(void) {
   board_v2_set_panda_power(true);
 
   // Current monitor channels
-  adc_init();
+  adc_init(ADC1);
   register_set_bits(&SYSCFG->PMCR, SYSCFG_PMCR_PA0SO | SYSCFG_PMCR_PA1SO); // open up analog switches for PA0_C and PA1_C
   set_gpio_mode(GPIOF, 11, MODE_ANALOG);
   set_gpio_mode(GPIOA, 6, MODE_ANALOG);
   set_gpio_mode(GPIOC, 4, MODE_ANALOG);
   set_gpio_mode(GPIOB, 1, MODE_ANALOG);
+
+  // SBU channels
+  adc_init(ADC3);
+  set_gpio_mode(GPIOC, 2, MODE_ANALOG);
+  set_gpio_mode(GPIOC, 3, MODE_ANALOG);
+  set_gpio_mode(GPIOF, 9, MODE_ANALOG);
+  set_gpio_mode(GPIOF, 7, MODE_ANALOG);
+  set_gpio_mode(GPIOF, 5, MODE_ANALOG);
+  set_gpio_mode(GPIOF, 3, MODE_ANALOG);
+  set_gpio_mode(GPIOF, 10, MODE_ANALOG);
+  set_gpio_mode(GPIOF, 8, MODE_ANALOG);
+  set_gpio_mode(GPIOF, 6, MODE_ANALOG);
+  set_gpio_mode(GPIOF, 4, MODE_ANALOG);
+  set_gpio_mode(GPIOC, 0, MODE_ANALOG);
+  set_gpio_mode(GPIOC, 1, MODE_ANALOG);
 }
 
 void board_v2_tick(void) {}
@@ -219,4 +272,5 @@ const board board_v2 = {
   .set_can_mode = &board_v2_set_can_mode,
   .enable_can_transciever = &board_v2_enable_can_transciever,
   .get_channel_power = &board_v2_get_channel_power,
+  .get_sbu_mV = &board_v1_get_sbu_mV,
 };
