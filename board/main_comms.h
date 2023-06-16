@@ -10,7 +10,7 @@ int get_health_pkt(void *dat) {
   health->ch3_power = current_board->get_channel_power(3U);
   health->ch4_power = current_board->get_channel_power(4U);
   health->ch5_power = current_board->get_channel_power(5U);
-  health->ch5_power = current_board->get_channel_power(6U);
+  health->ch6_power = current_board->get_channel_power(6U);
 
   return sizeof(*health);
 }
