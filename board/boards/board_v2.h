@@ -146,7 +146,7 @@ void board_v2_set_can_mode(uint8_t mode) {
 bool panda_power = false;
 void board_v2_set_panda_power(bool enable) {
   panda_power = enable;
-  gpio_set_all_output(power_pins, sizeof(power_pins) / sizeof(gpio_t), !enable);
+  gpio_set_all_output(power_pins, sizeof(power_pins) / sizeof(gpio_t), enable);
 }
 
 bool board_v2_get_button(void) {
@@ -183,7 +183,7 @@ float board_v2_get_channel_power(uint8_t channel) {
   if ((channel >= 1U) && (channel <= 6U)) {
     uint16_t readout = adc_get_mV(ADC1, channel - 1U); // these are mapped nicely in hardware
 
-    ret = (float) readout / 1587.3f * 12.0f;
+    ret = (((float) readout / 33e6) - 0.8e-6) / 52e-6 * 12.0f;
   } else {
     print("Invalid channel ("); puth(channel); print(")\n");
   }
