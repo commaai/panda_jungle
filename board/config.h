@@ -1,35 +1,39 @@
-#ifndef PANDA_JUNGLE_CONFIG_H
-#define PANDA_JUNGLE_CONFIG_H
-
-//#define DEBUG
-//#define DEBUG_USB
-
-#include "stm32f4xx.h"
-
-#define USB_VID 0xbbaaU
-
-// Different PID than a panda!
-#ifdef BOOTSTUB
-#define USB_PID 0xddefU
-#else
-#define USB_PID 0xddcfU
-#endif
+#pragma once
 
 #include <stdbool.h>
-#define NULL ((void*)0)
-#define COMPILE_TIME_ASSERT(pred) ((void)sizeof(char[1 - (2 * ((int)(!(pred))))]))
 
-#define MIN(a,b) \
- ({ __typeof__ (a) _a = (a); \
-     __typeof__ (b) _b = (b); \
-   (_a < _b) ? _a : _b; })
+//#define DEBUG
+//#define DEBUG_UART
+//#define DEBUG_USB
+//#define DEBUG_SPI
+#define DEBUG_FAULTS
+//#define DEBUG_COMMS
+//#define DEBUG_FAN
 
-#define MAX(a,b) \
- ({ __typeof__ (a) _a = (a); \
-     __typeof__ (b) _b = (b); \
-   (_a > _b) ? _a : _b; })
+#define CAN_INIT_TIMEOUT_MS 500U
+#define DEEPSLEEP_WAKEUP_DELAY 3U
+#define USBPACKET_MAX_SIZE 0x40U
+#define MAX_CAN_MSGS_PER_USB_BULK_TRANSFER 51U
+#define MAX_CAN_MSGS_PER_SPI_BULK_TRANSFER 170U
 
-#define MAX_RESP_LEN 0x40U
+#define VIN_READOUT_DIVIDER 11U
 
+// USB definitions
+#define USB_VID 0xBBAAU
+
+#ifdef BOOTSTUB
+  #define USB_PID 0xDDEFU
+#else
+  #define USB_PID 0xDDCFU
 #endif
 
+// platform includes
+#ifdef STM32H7
+  #include "stm32h7/stm32h7_config.h"
+#elif defined(STM32F2) || defined(STM32F4)
+  #include "stm32fx/stm32fx_config.h"
+#else
+  // TODO: uncomment this, cppcheck complains
+  // building for tests
+  //#include "fake_stm.h"
+#endif

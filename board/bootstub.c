@@ -1,39 +1,26 @@
 #define BOOTSTUB
 
-#include "config.h"
-#include "obj/gitversion.h"
-
-#include "stm32f4xx.h"
-#include "stm32f4xx_hal_gpio_ex.h"
-
-// ******************** Prototypes ********************
-void puts(const char *a){ UNUSED(a); }
-void puth(unsigned int i){ UNUSED(i); }
-void puth2(unsigned int i){ UNUSED(i); }
-
-// No CAN support on bootloader
-void can_flip_buses(uint8_t bus1, uint8_t bus2){UNUSED(bus1); UNUSED(bus2);}
+#define VERS_TAG 0x53524556
+#define MIN_VERSION 2
 
 // ********************* Includes *********************
-#include "libc.h"
+#include "config.h"
 
-#include "drivers/clock.h"
-#include "drivers/llgpio.h"
-
-#include "board.h"
-
-#include "gpio.h"
-
+#include "drivers/pwm.h"
 #include "drivers/usb.h"
+
+#include "early_init.h"
+#include "provision.h"
+
+#include "obj/gitversion.h"
+#include "flasher.h"
 
 #include "crypto/rsa.h"
 #include "crypto/sha.h"
-
-#include "spi_flasher.h"
 #include "obj/cert.h"
 
 void __initialize_hardware_early(void) {
-  early();
+  early_initialization();
 }
 
 void fail(void) {
@@ -43,9 +30,16 @@ void fail(void) {
 // know where to sig check
 extern void *_app_start[];
 
+// FIXME: sometimes your panda will fail flashing and will quickly blink a single Green LED
+// BOUNTY: $200 coupon on shop.comma.ai or $100 check.
+
 int main(void) {
+  // Init interrupt table
+  init_interrupts(true);
+
   disable_interrupts();
   clock_init();
+  detect_board_type();
 
   if (enter_bootloader_mode == ENTER_SOFTLOADER_MAGIC) {
     enter_bootloader_mode = 0;
@@ -59,6 +53,13 @@ int main(void) {
   // compute SHA hash
   uint8_t digest[SHA_DIGEST_SIZE];
   SHA_hash(&_app_start[1], len-4, digest);
+
+  // verify version, last bytes in the signed area
+  uint32_t vers[2] = {0};
+  memcpy(&vers, ((void*)&_app_start[0]) + len - sizeof(vers), sizeof(vers));
+  if (vers[0] != VERS_TAG || vers[1] < MIN_VERSION) {
+    goto fail;
+  }
 
   // verify RSA signature
   if (RSA_verify(&release_rsa_key, ((void*)&_app_start[0]) + len, RSANUMBYTES, digest, SHA_DIGEST_SIZE)) {
@@ -81,4 +82,3 @@ good:
   ((void(*)(void)) _app_start[1])();
   return 0;
 }
-
