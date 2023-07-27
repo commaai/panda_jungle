@@ -180,6 +180,12 @@ int main(void) {
   can_init_all();
   current_board->set_harness_orientation(HARNESS_ORIENTATION_1);
 
+#ifdef FINAL_PROVISIONING
+  print("---- FINAL PROVISIONING BUILD ---- \n");
+  can_set_forwarding(0, 2);
+  can_set_forwarding(1, 2);
+#endif
+
   // LED should keep on blinking all the time
   uint64_t cnt = 0;
 
