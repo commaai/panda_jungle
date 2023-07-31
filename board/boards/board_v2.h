@@ -123,7 +123,7 @@ void board_v2_set_can_mode(uint8_t mode) {
 
       set_gpio_pullup(GPIOB, 6, PULL_NONE);
       set_gpio_alternate(GPIOB, 6, GPIO_AF9_FDCAN2);
-      mode = CAN_MODE_NORMAL;
+      can_mode = CAN_MODE_NORMAL;
       break;
     case CAN_MODE_OBD_CAN2:
       // B5,B6: disable normal mode
@@ -138,7 +138,7 @@ void board_v2_set_can_mode(uint8_t mode) {
 
       set_gpio_pullup(GPIOB, 13, PULL_NONE);
       set_gpio_alternate(GPIOB, 13, GPIO_AF9_FDCAN2);
-      mode = CAN_MODE_OBD_CAN2;
+      can_mode = CAN_MODE_OBD_CAN2;
       break;
     default:
       break;
