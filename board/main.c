@@ -71,7 +71,7 @@ void tick_handler(void) {
     simple_watchdog_kick();
 
     // decimated to 1Hz
-    if (loop_counter == 0U) {
+    if ((loop_counter % 8) == 0U) {
       #ifdef DEBUG
         print("** blink ");
         print("rx:"); puth4(can_rx_q.r_ptr); print("-"); puth4(can_rx_q.w_ptr); print("  ");
@@ -123,7 +123,6 @@ void tick_handler(void) {
     button_press_cnt = current_button_status ? button_press_cnt + 1 : 0;
 
     loop_counter++;
-    loop_counter %= 8U;
   }
   TICK_TIMER->SR = 0;
 }
