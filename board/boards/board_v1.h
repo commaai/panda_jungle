@@ -56,13 +56,13 @@ void board_v1_set_harness_orientation(uint8_t orientation) {
       break;
     case HARNESS_ORIENTATION_1:
       set_gpio_output(GPIOA, 2, false);
-      set_gpio_output(GPIOA, 3, ignition);
+      set_gpio_output(GPIOA, 3, (ignition != 0U));
       set_gpio_output(GPIOA, 4, true);
       set_gpio_output(GPIOA, 5, false);
       harness_orientation = orientation;
       break;
     case HARNESS_ORIENTATION_2:
-      set_gpio_output(GPIOA, 2, ignition);
+      set_gpio_output(GPIOA, 2, (ignition != 0U));
       set_gpio_output(GPIOA, 3, false);
       set_gpio_output(GPIOA, 4, false);
       set_gpio_output(GPIOA, 5, true);
@@ -85,7 +85,7 @@ bool board_v1_get_button(void) {
 }
 
 void board_v1_set_ignition(bool enabled) {
-  ignition = enabled;
+  ignition = enabled ? 0xFFU : 0U;
   board_v1_set_harness_orientation(harness_orientation);
 }
 
@@ -160,6 +160,7 @@ const board board_v1 = {
   .get_button = &board_v1_get_button,
   .set_panda_power = &board_v1_set_panda_power,
   .set_ignition = &board_v1_set_ignition,
+  .set_individual_ignition = &unused_set_individual_ignition,
   .set_harness_orientation = &board_v1_set_harness_orientation,
   .set_can_mode = &board_v1_set_can_mode,
   .enable_can_transciever = &board_v1_enable_can_transciever,

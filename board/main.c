@@ -62,7 +62,7 @@ void __attribute__ ((noinline)) enable_fpu(void) {
 }
 
 // called at 8Hz
-uint8_t loop_counter = 0U;
+uint32_t loop_counter = 0U;
 uint16_t button_press_cnt = 0U;
 void tick_handler(void) {
   if (TICK_TIMER->SR != 0) {
@@ -107,11 +107,11 @@ void tick_handler(void) {
     }
 
 #ifdef FINAL_PROVISIONING
-    // ign on for 0.3s, off for 0.2s
-    const bool ign = (loop_counter % (3+2)) < 3;
-    if (ign != ignition) {
-      current_board->set_ignition(ign);
+    uint8_t ignition_bitmask = 0U;
+    for(uint8_t i = 0U; i < 6U; i++) {
+      ignition_bitmask |= ((loop_counter % 12U) < ((uint32_t) i + 2U)) << i;
     }
+    current_board->set_individual_ignition(ignition_bitmask);
 #else
     static bool prev_button_status = false;
     if (!current_button_status && prev_button_status && button_press_cnt < 10){
