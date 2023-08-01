@@ -107,11 +107,25 @@ void tick_handler(void) {
     }
 
 #ifdef FINAL_PROVISIONING
+    // Ignition blinking
     uint8_t ignition_bitmask = 0U;
     for(uint8_t i = 0U; i < 6U; i++) {
       ignition_bitmask |= ((loop_counter % 12U) < ((uint32_t) i + 2U)) << i;
     }
     current_board->set_individual_ignition(ignition_bitmask);
+
+    // SBU voltage reporting
+    if (current_board->has_sbu_sense) {
+      for(uint8_t i = 0U; i < 6U; i++) {
+        CANPacket_t pkt = { 0 };
+        pkt.data_len_code = 8U;
+        pkt.addr = 0x100U + i;
+        *(uint16_t *) &pkt.data[0] = current_board->get_sbu_mV(i + 1U, SBU1);
+        *(uint16_t *) &pkt.data[4] = current_board->get_sbu_mV(i + 1U, SBU2);
+        can_set_checksum(&pkt);
+        can_send(&pkt, 0U);
+      }
+    }
 #else
     static bool prev_button_status = false;
     if (!current_button_status && prev_button_status && button_press_cnt < 10){

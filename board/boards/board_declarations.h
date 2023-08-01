@@ -15,6 +15,7 @@ typedef uint16_t (*board_get_sbu_mV)(uint8_t channel, uint8_t sbu);
 struct board {
   const char *board_type;
   const bool has_canfd;
+  const bool has_sbu_sense;
   const uint16_t avdd_mV;
   board_init init;
   board_set_led set_led;

@@ -153,6 +153,7 @@ void board_v1_tick(void) {}
 const board board_v1 = {
   .board_type = "V1",
   .has_canfd = false,
+  .has_sbu_sense = false,
   .avdd_mV = 3300U,
   .init = &board_v1_init,
   .set_led = &board_v1_set_led,
