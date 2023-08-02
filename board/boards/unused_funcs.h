@@ -22,6 +22,10 @@ uint32_t unused_read_current(void) {
   return 0U;
 }
 
+void unused_set_individual_ignition(uint8_t bitmask) {
+  UNUSED(bitmask);
+}
+
 void unused_board_tick(bool ignition, bool usb_enum, bool heartbeat_seen, bool harness_inserted) {
   UNUSED(ignition);
   UNUSED(usb_enum);
