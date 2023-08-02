@@ -121,7 +121,8 @@ void tick_handler(void) {
         pkt.data_len_code = 8U;
         pkt.addr = 0x100U + i;
         *(uint16_t *) &pkt.data[0] = current_board->get_sbu_mV(i + 1U, SBU1);
-        *(uint16_t *) &pkt.data[4] = current_board->get_sbu_mV(i + 1U, SBU2);
+        *(uint16_t *) &pkt.data[2] = current_board->get_sbu_mV(i + 1U, SBU2);
+        pkt.data[4] = (ignition_bitmask >> i) & 1U;
         can_set_checksum(&pkt);
         can_send(&pkt, 0U);
       }

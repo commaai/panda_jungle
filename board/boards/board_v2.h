@@ -197,7 +197,7 @@ float board_v2_get_channel_power(uint8_t channel) {
   return ret;
 }
 
-uint16_t board_v1_get_sbu_mV(uint8_t channel, uint8_t sbu) {
+uint16_t board_v2_get_sbu_mV(uint8_t channel, uint8_t sbu) {
   uint16_t ret = 0U;
   if ((channel >= 1U) && (channel <= 6U)) {
     switch(sbu){
@@ -311,5 +311,5 @@ const board board_v2 = {
   .set_can_mode = &board_v2_set_can_mode,
   .enable_can_transciever = &board_v2_enable_can_transciever,
   .get_channel_power = &board_v2_get_channel_power,
-  .get_sbu_mV = &board_v1_get_sbu_mV,
+  .get_sbu_mV = &board_v2_get_sbu_mV,
 };
