@@ -1,5 +1,8 @@
+# WARNING: the jungle firmware has moved to [commaai/panda](https://github.com/commaai/panda/tree/master/board/jungle)
+
 Welcome to the jungle
 ======
+
 Firmware for the internal Panda Jungle testing boards.
 Forked from panda firmware ([adc0c12](https://github.com/commaai/panda/commit/adc0c12f7b403e04222799bde4f4ee0673e46160)).
 
